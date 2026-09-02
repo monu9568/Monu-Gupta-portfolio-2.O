@@ -5,6 +5,8 @@ import { Upload, Folder, X, Check, Image as ImageIcon, Video, FileText, Loader2,
 import Image from "next/image";
 import SmartMedia from "../ui/SmartMedia";
 
+import { upload } from "@vercel/blob/client";
+
 interface MediaAsset {
   name: string;
   url: string;
@@ -57,20 +59,52 @@ export default function MediaUploadInput({
     const file = files[0];
     setUploading(true);
 
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("category", category);
-
     try {
-      const res = await fetch("/api/media", {
-        method: "POST",
-        body: formData,
-      });
+      let finalUrl = "";
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      // 1. Try Direct Vercel Blob Client Upload (Supports up to 250MB directly to Vercel CDN)
+      try {
+        const cleanName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+        const newBlob = await upload(cleanName, file, {
+          access: "public",
+          handleUploadUrl: "/api/media/upload",
+        });
+        if (newBlob && newBlob.url) {
+          finalUrl = newBlob.url;
+        }
+      } catch (blobErr: any) {
+        console.warn("Direct blob upload bypassed, falling back to server route:", blobErr?.message);
+      }
 
-      onChange(data.url);
+      // 2. Fallback to /api/media POST if direct blob wasn't available
+      if (!finalUrl) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("category", category);
+
+        const res = await fetch("/api/media", {
+          method: "POST",
+          body: formData,
+        });
+
+        const resText = await res.text();
+        let data: any = {};
+        try {
+          data = JSON.parse(resText);
+        } catch {
+          if (resText.includes("413") || resText.includes("Request Entity Too Large")) {
+            throw new Error("File exceeds serverless limit. Please ensure Vercel Blob is connected.");
+          }
+          throw new Error("Invalid response from server");
+        }
+
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+        finalUrl = data.url;
+      }
+
+      if (finalUrl) {
+        onChange(finalUrl);
+      }
     } catch (err: any) {
       alert(err.message || "Failed to upload file");
     } finally {
@@ -78,6 +112,7 @@ export default function MediaUploadInput({
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
 
   const fetchLibrary = async () => {
     setLoadingLibrary(true);

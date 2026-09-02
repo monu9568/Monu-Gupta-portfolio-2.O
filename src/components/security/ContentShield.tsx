@@ -48,8 +48,19 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       }
     };
 
-    // 3. Safe Keystroke Protection (Save & Print)
+    // 3. Safe Keystroke Protection (Save, Print, and Screen Capture)
     const handleKeyDown = (e: KeyboardEvent) => {
+      // PrintScreen / Win + PrtScn capture interception
+      if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText("");
+          }
+        } catch {}
+        showSecurityToast("Screen capture intercepted. Media assets are protected.");
+        return;
+      }
+
       const isMac = typeof navigator !== "undefined" && navigator.platform.toUpperCase().indexOf("MAC") >= 0;
       const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
 
@@ -68,17 +79,31 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       }
     };
 
-    window.addEventListener("contextmenu", handleContextMenu);
-    window.addEventListener("dragstart", handleDragStart);
-    window.addEventListener("keydown", handleKeyDown);
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44) {
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText("");
+          }
+        } catch {}
+        showSecurityToast("Screen capture intercepted. Media assets are protected.");
+      }
+    };
+
+    window.addEventListener("contextmenu", handleContextMenu, { capture: true });
+    window.addEventListener("dragstart", handleDragStart, { capture: true });
+    window.addEventListener("keydown", handleKeyDown, { capture: true });
+    window.addEventListener("keyup", handleKeyUp, { capture: true });
 
     return () => {
-      window.removeEventListener("contextmenu", handleContextMenu);
-      window.removeEventListener("dragstart", handleDragStart);
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("contextmenu", handleContextMenu, { capture: true } as any);
+      window.removeEventListener("dragstart", handleDragStart, { capture: true } as any);
+      window.removeEventListener("keydown", handleKeyDown, { capture: true } as any);
+      window.removeEventListener("keyup", handleKeyUp, { capture: true } as any);
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
     };
   }, [isAdmin, disableRightClick, disableMediaSave, showSecurityToast]);
+
 
   if (isAdmin) return null;
 

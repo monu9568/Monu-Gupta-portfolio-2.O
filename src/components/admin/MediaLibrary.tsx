@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Upload, Copy, Check, Image as ImageIcon, Video, RefreshCw, Folder, Trash2, Loader2 } from "lucide-react";
 import GlassCard from "../ui/GlassCard";
 import Image from "next/image";
+import { upload } from "@vercel/blob/client";
+
 
 interface MediaAsset {
   name: string;
@@ -44,17 +46,50 @@ export default function MediaLibrary() {
     setUploading(true);
     const file = files[0];
     const isVideo = file.type.startsWith("video/") || file.name.match(/\.(mp4|webm|mov|ogg)$/i);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("category", isVideo ? "video" : (selectedCategory === "all" ? "projects" : selectedCategory));
+    const category = isVideo ? "video" : (selectedCategory === "all" ? "projects" : selectedCategory);
 
     try {
-      const res = await fetch("/api/media", {
-        method: "POST",
-        body: formData,
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upload failed");
+      let success = false;
+
+      // 1. Try Direct Client Upload to Vercel Blob (supports up to 250MB)
+      try {
+        const cleanName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+        const newBlob = await upload(cleanName, file, {
+          access: "public",
+          handleUploadUrl: "/api/media/upload",
+        });
+        if (newBlob && newBlob.url) {
+          success = true;
+        }
+      } catch (blobErr: any) {
+        console.warn("Direct blob upload bypassed, falling back to server route:", blobErr?.message);
+      }
+
+      // 2. Fallback to /api/media POST
+      if (!success) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("category", category);
+
+        const res = await fetch("/api/media", {
+          method: "POST",
+          body: formData,
+        });
+
+        const resText = await res.text();
+        let data: any = {};
+        try {
+          data = JSON.parse(resText);
+        } catch {
+          if (resText.includes("413") || resText.includes("Request Entity Too Large")) {
+            throw new Error("File exceeds serverless limit. Please connect Vercel Blob.");
+          }
+          throw new Error("Invalid server response");
+        }
+
+        if (!res.ok) throw new Error(data.error || "Upload failed");
+      }
+
       await fetchAssets();
       alert("File uploaded successfully!");
     } catch (err: any) {
