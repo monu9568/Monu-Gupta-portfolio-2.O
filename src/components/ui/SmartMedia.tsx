@@ -22,6 +22,9 @@ interface SmartMediaProps {
   isFullView?: boolean;
 }
 
+// Global in-memory cache for media that have already buffered
+const videoCache = new Set<string>();
+
 export default function SmartMedia({
   src,
   alt,
@@ -40,7 +43,7 @@ export default function SmartMedia({
   isFullView = false,
 }: SmartMediaProps) {
   const [error, setError] = useState(false);
-  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [isVideoReady, setIsVideoReady] = useState(() => Boolean(src && videoCache.has(src)));
 
   if (!src || error) {
     return (
@@ -93,16 +96,16 @@ export default function SmartMedia({
             <iframe
               src={`${src}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
               title={alt}
-              className="w-full h-full min-h-[420px] border-0 pointer-events-auto select-none"
+              className="w-full h-full min-h-[420px] border-0 select-none"
             />
-            {/* Top Transparent Click Shield to block right click Save As */}
+            {/* Top Transparent Click & Context Shield: blocks right-click, Save As, and direct PDF menu extraction */}
             <div
               onContextMenu={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 return false;
               }}
-              className="absolute inset-0 z-10 pointer-events-none bg-transparent"
+              className="absolute inset-0 z-20 pointer-events-auto bg-transparent select-none cursor-default"
             />
           </div>
           <div className="pt-3 flex items-center justify-between">
@@ -110,8 +113,8 @@ export default function SmartMedia({
               <FileText className="h-4 w-4 text-cyan-400" />
               <span>Verified Credential: {alt}</span>
             </span>
-            <span className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
-              Protected Document Preview
+            <span className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 select-none">
+              🔒 Protected Digital Credential
             </span>
           </div>
         </div>
@@ -144,16 +147,23 @@ export default function SmartMedia({
     );
   }
 
-  // --- VIDEO RENDERING (Protected Player with Instant Buffer State) ---
+  // --- VIDEO RENDERING (Protected Player with Persistent Memory Caching) ---
   if (isVideo) {
+    const isCached = videoCache.has(src);
+
+    const markVideoLoaded = () => {
+      if (src) videoCache.add(src);
+      setIsVideoReady(true);
+    };
+
     return (
       <div
         onClick={onClick}
         onContextMenu={(e) => e.preventDefault()}
         className={`overflow-hidden select-none bg-black/80 flex items-center justify-center relative ${fill ? "absolute inset-0 w-full h-full" : "relative w-full h-full"}`}
       >
-        {/* Sleek Animated Pulse Skeleton while Video Buffers */}
-        {!isVideoReady && (
+        {/* Only show loader if video has NEVER buffered before and has no poster */}
+        {!isVideoReady && !isCached && !poster && (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs z-10 transition-opacity duration-300">
             <div className="flex flex-col items-center gap-2 text-cyan-400 font-mono text-xs">
               <span className="h-5 w-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
@@ -165,7 +175,7 @@ export default function SmartMedia({
         <video
           key={src}
           poster={poster}
-          preload="auto"
+          preload={isFullView || controls ? "auto" : "metadata"}
           autoPlay={autoPlay}
           loop={loop}
           muted={muted}
@@ -177,11 +187,12 @@ export default function SmartMedia({
           // @ts-ignore
           disableRemotePlayback
           playsInline={playsInline}
-          onCanPlay={() => setIsVideoReady(true)}
-          onLoadedData={() => setIsVideoReady(true)}
+          onCanPlay={markVideoLoaded}
+          onLoadedData={markVideoLoaded}
+          onPlaying={markVideoLoaded}
           onContextMenu={(e) => e.preventDefault()}
-          className={`${className} pointer-events-auto select-none w-full h-full object-contain transition-opacity duration-500 ${
-            isVideoReady ? "opacity-100" : "opacity-0"
+          className={`${className} pointer-events-auto select-none w-full h-full object-contain transition-opacity duration-300 ${
+            isVideoReady || isCached || poster ? "opacity-100" : "opacity-0"
           }`}
         >
           <source src={src} type="video/mp4" />
@@ -197,6 +208,7 @@ export default function SmartMedia({
       </div>
     );
   }
+
 
 
 

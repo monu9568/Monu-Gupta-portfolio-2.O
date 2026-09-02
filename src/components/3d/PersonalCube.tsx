@@ -180,7 +180,7 @@ export default function PersonalCube({
     groupRef.current.position.y = Math.sin(time * 1.2) * 0.05;
   });
 
-  const cubeSize = isMobile ? 1.7 : 1.9;
+  const cubeSize = isMobile ? 1.6 : 1.9;
 
   return (
     <group ref={groupRef} position={[0.2, 0, 0]}>

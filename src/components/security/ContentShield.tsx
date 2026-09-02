@@ -31,6 +31,11 @@ export default function ContentShield({ settings }: ContentShieldProps) {
   }, []);
 
   const triggerAntiCaptureVeil = useCallback(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty("filter", "contrast(0) brightness(0)", "important");
+      document.documentElement.style.setProperty("opacity", "0", "important");
+    }
+
     setIsPrivacyObscured(true);
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -40,14 +45,20 @@ export default function ContentShield({ settings }: ContentShieldProps) {
 
     if (blackoutTimeoutRef.current) clearTimeout(blackoutTimeoutRef.current);
     blackoutTimeoutRef.current = setTimeout(() => {
+      if (typeof document !== "undefined") {
+        document.documentElement.style.removeProperty("filter");
+        document.documentElement.style.removeProperty("opacity");
+      }
       setIsPrivacyObscured(false);
-    }, 1200);
+    }, 1400);
 
-    showSecurityToast("Screen capture intercepted. Media assets are encrypted.");
+    showSecurityToast("Digital Rights Protected: Screen capture intercepted.");
   }, [showSecurityToast]);
 
   useEffect(() => {
     if (isAdmin || typeof window === "undefined") return;
+
+    const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
     // 1. Right-Click Prevention
     const handleContextMenu = (e: MouseEvent) => {
@@ -66,10 +77,17 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       }
     };
 
-    // 3. Safe Keystroke Protection (Save, Print, and Screen Capture)
+    // 3. Safe Keystroke Protection (Win+PrtScn, Win+Shift+S, Save, Print)
     const handleKeyDown = (e: KeyboardEvent) => {
       // PrintScreen / Win + PrtScn capture interception
       if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44) {
+        e.preventDefault();
+        triggerAntiCaptureVeil();
+        return;
+      }
+
+      // Windows Snipping Tool (Win + Shift + S) or Mac Screenshot (Cmd + Shift + 4)
+      if (e.shiftKey && (e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S" || e.code === "KeyS" || e.key === "4" || e.code === "Digit4")) {
         e.preventDefault();
         triggerAntiCaptureVeil();
         return;
@@ -99,20 +117,42 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       }
     };
 
+    // 4. Desktop Snipping Tool / Focus Steal Protection
+    // When external screenshot overlays (like Snipping Tool or Game Bar) take OS focus, obscure media
+    const handleWindowBlur = () => {
+      if (!isTouchDevice && typeof document !== "undefined") {
+        document.body.classList.add("capture-shield-active");
+      }
+    };
+
+    const handleWindowFocus = () => {
+      if (typeof document !== "undefined") {
+        document.body.classList.remove("capture-shield-active");
+      }
+    };
+
     window.addEventListener("contextmenu", handleContextMenu, { capture: true });
     window.addEventListener("dragstart", handleDragStart, { capture: true });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     window.addEventListener("keyup", handleKeyUp, { capture: true });
+    window.addEventListener("blur", handleWindowBlur);
+    window.addEventListener("focus", handleWindowFocus);
 
     return () => {
       window.removeEventListener("contextmenu", handleContextMenu, { capture: true } as any);
       window.removeEventListener("dragstart", handleDragStart, { capture: true } as any);
       window.removeEventListener("keydown", handleKeyDown, { capture: true } as any);
       window.removeEventListener("keyup", handleKeyUp, { capture: true } as any);
+      window.removeEventListener("blur", handleWindowBlur);
+      window.removeEventListener("focus", handleWindowFocus);
+      if (typeof document !== "undefined") {
+        document.body.classList.remove("capture-shield-active");
+      }
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       if (blackoutTimeoutRef.current) clearTimeout(blackoutTimeoutRef.current);
     };
   }, [isAdmin, disableRightClick, disableMediaSave, triggerAntiCaptureVeil, showSecurityToast]);
+
 
   if (isAdmin) return null;
 

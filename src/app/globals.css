@@ -255,5 +255,16 @@ img, video, canvas {
   }
 }
 
+/* Dynamic Capture Shield: Blurs and blacks out media when external screen snip / OS capture steals focus */
+body.capture-shield-active img,
+body.capture-shield-active video,
+body.capture-shield-active iframe,
+body.capture-shield-active canvas {
+  filter: blur(50px) brightness(0.05) !important;
+  opacity: 0.05 !important;
+  transition: none !important;
+}
+
+
 
 
