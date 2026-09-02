@@ -16,7 +16,11 @@ if (process.env.CLOUDINARY_URL || (process.env.CLOUDINARY_CLOUD_NAME && process.
   });
 }
 
-const HAS_VERCEL_BLOB = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
+const BLOB_TOKEN =
+  process.env.BLOB_READ_WRITE_TOKEN ||
+  "vercel_blob_rw_WOcKtcD4V9eOVLjZ_R2ISZzTvebeG7nthMXsiT6LfOKw5CP";
+
+const HAS_VERCEL_BLOB = Boolean(BLOB_TOKEN);
 const HAS_CLOUDINARY = Boolean(process.env.CLOUDINARY_URL || (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY));
 
 export async function GET(req: NextRequest) {
@@ -31,7 +35,7 @@ export async function GET(req: NextRequest) {
     // 1. If Vercel Blob is configured, list cloud blobs
     if (HAS_VERCEL_BLOB) {
       try {
-        const { blobs } = await list();
+        const { blobs } = await list({ token: BLOB_TOKEN });
         for (const b of blobs) {
           const isPdf = b.pathname.toLowerCase().endsWith(".pdf");
           const isVid = Boolean(b.pathname.match(/\.(mp4|webm|mov|ogg|mkv)$/i));
@@ -54,6 +58,7 @@ export async function GET(req: NextRequest) {
         console.warn("Vercel Blob list notice:", blobErr);
       }
     }
+
 
     // 2. Scan local public assets (bundled or seeded)
     try {
@@ -155,12 +160,14 @@ export async function POST(req: NextRequest) {
         const blobPath = `${category}/${cleanFileName}`;
         const blobResult = await put(blobPath, buffer, {
           access: "public",
+          token: BLOB_TOKEN,
           contentType: file.type || (isPdf ? "application/pdf" : isVideo ? "video/mp4" : "image/webp"),
         });
         publicUrl = blobResult.url;
       } catch (blobErr) {
         console.error("Vercel Blob upload failed, trying next provider:", blobErr);
       }
+
     }
 
     // 2. Secondary: Cloudinary Storage
@@ -262,12 +269,13 @@ export async function DELETE(req: NextRequest) {
     // 1. Delete from Vercel Blob if it's a Vercel Blob URL
     if (fileUrl.includes("vercel-storage.com") && HAS_VERCEL_BLOB) {
       try {
-        await del(fileUrl);
+        await del(fileUrl, { token: BLOB_TOKEN });
         return NextResponse.json({ success: true, message: "Cloud asset deleted successfully" });
       } catch (delErr: any) {
         return NextResponse.json({ error: delErr.message || "Failed to delete from Vercel Blob" }, { status: 500 });
       }
     }
+
 
     // 2. Delete from Cloudinary if it's a Cloudinary URL
     if (fileUrl.includes("cloudinary.com") && HAS_CLOUDINARY) {
