@@ -582,7 +582,7 @@
     "id": "default-settings",
     "siteTitle": "Monu Gupta — Full-Stack Developer • Data Analyst • AI & ML Solutions",
     "metaDesc": "Portfolio of Monu Gupta — Full-Stack Developer, Data Analyst, and AI/ML Specialist building high-performance web applications, analytics dashboards, and intelligent software.",
-    "ogImageUrl": "/images/projects/spatial-vision-os.jpg",
+    "ogImageUrl": "/images/projects/quantum-fintech.jpg",
     "accentColor": "#38bdf8",
     "analyticsEnabled": true,
     "headerMonogram": "MG",
@@ -638,6 +638,9 @@
     "footerStatusTag": "Spatial Engine 2.0",
     "showLiveClock": true,
     "showBackToTop": true,
-    "footerLinks": []
+    "footerLinks": [],
+    "blockScreenshots": true,
+    "disableRightClick": true,
+    "disableMediaSave": true
   }
 }

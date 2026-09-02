@@ -27,10 +27,11 @@ export default function CaseStudyModal({ project, onClose }: CaseStudyModalProps
     }
 
     return () => {
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [project, onClose]);
+
 
   if (!project) return null;
 

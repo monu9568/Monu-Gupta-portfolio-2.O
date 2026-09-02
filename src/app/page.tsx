@@ -1,21 +1,18 @@
 import React from "react";
-import dynamic from "next/dynamic";
 import Navbar from "@/components/sections/Navbar";
 import HeroSection from "@/components/sections/HeroSection";
+import ProjectsSection from "@/components/sections/ProjectsSection";
+import SkillsSection from "@/components/sections/SkillsSection";
+import ExperienceSection from "@/components/sections/ExperienceSection";
+import AboutSection from "@/components/sections/AboutSection";
+import ContactSection from "@/components/sections/ContactSection";
+import Footer from "@/components/sections/Footer";
 import ContentShield from "@/components/security/ContentShield";
 import { getPortfolioData } from "@/lib/db";
 
-
-// Progressive below-the-fold dynamic imports
-const ProjectsSection = dynamic(() => import("@/components/sections/ProjectsSection"));
-const SkillsSection = dynamic(() => import("@/components/sections/SkillsSection"));
-const ExperienceSection = dynamic(() => import("@/components/sections/ExperienceSection"));
-const AboutSection = dynamic(() => import("@/components/sections/AboutSection"));
-const ContactSection = dynamic(() => import("@/components/sections/ContactSection"));
-const Footer = dynamic(() => import("@/components/sections/Footer"));
-
 // Revalidate data on Edge CDN for instant 15ms global loading
 export const revalidate = 60;
+
 
 
 export default function HomePage() {

@@ -1,5 +1,14 @@
 [
   {
+    "id": "msg-1788360671944",
+    "name": "Verification User",
+    "email": "test.verification@example.com",
+    "subject": "Vercel Performance Audit",
+    "message": "Verified submission from test suite.",
+    "status": "UNREAD",
+    "createdAt": "2026-09-02T14:51:11.944Z"
+  },
+  {
     "id": "msg-1788354679978",
     "name": "Verification User",
     "email": "test.verification@example.com",

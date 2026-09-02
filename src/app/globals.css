@@ -198,16 +198,6 @@ html.lenis, html.lenis body {
   pointer-events: none;
 }
 
-/* Off-screen Section Layout Optimization (Eliminates main-thread blocking on initial load) */
-#projects,
-#skills,
-#experience,
-#about,
-#contact {
-  content-visibility: auto;
-  contain-intrinsic-size: 1px 800px;
-}
-
 /* Modal Inner Scrollbar */
 .custom-modal-scroll {
   scrollbar-width: thin;
@@ -257,20 +247,12 @@ img, video, canvas {
   -webkit-touch-callout: none;
 }
 
-/* Anti-Theft Print Protection: Blank out / watermark on print or PDF export */
+/* Anti-Theft Print Protection: Blank out on print / PDF export */
 @media print {
   html, body {
     display: none !important;
     visibility: hidden !important;
   }
-}
-
-/* Anti-Theft Screen Capture Defense: Deep hardware blur on capture tool activation */
-html.window-blurred main {
-  filter: blur(40px) brightness(0.2);
-  opacity: 0.05;
-  transition: filter 0.08s ease, opacity 0.08s ease;
-  pointer-events: none;
 }
 
 
