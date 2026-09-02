@@ -15,6 +15,15 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
   const [selectedCertificate, setSelectedCertificate] = useState<{ url: string; title: string; company: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
+  const [expandedCardIds, setExpandedCardIds] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedCardIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
 
   useEffect(() => {
     if (selectedCertificate) {
@@ -90,11 +99,11 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
 
                 <GlassCard
                   elevated
-                  className="p-6 sm:p-8 border border-white/10 hover:border-cyan-400/30 transition-all duration-300"
+                  className="p-5 sm:p-7 md:p-8 border border-white/10 hover:border-cyan-400/30 transition-all duration-300"
                 >
                   {/* Mobile Date Tag */}
                   {(exp.period || (exp.type && exp.type !== "None" && exp.type.trim() !== "")) && (
-                    <div className="md:hidden flex items-center justify-between gap-2 mb-3 pb-3 border-b border-white/10">
+                    <div className="md:hidden flex items-center justify-between gap-2 mb-3 pb-2.5 border-b border-white/10">
                       {exp.period ? (
                         <span className="text-xs font-mono text-cyan-400 font-medium">{exp.period}</span>
                       ) : (
@@ -109,11 +118,11 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                   )}
 
                   {/* Role and Company */}
-                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-4">
-                    <h3 className="text-xl font-bold text-white tracking-tight">
+                  <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-3">
+                    <h3 className="text-lg sm:text-xl font-bold text-white tracking-tight">
                       {exp.role}
                     </h3>
-                    <div className="flex items-center gap-2 text-sm text-slate-300 font-medium flex-wrap">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-300 font-medium flex-wrap">
                       <span className="text-cyan-300">@{exp.company}</span>
                       {exp.location && exp.location.trim() !== "" && (
                         <span className="text-xs text-slate-400 font-normal flex items-center gap-1">
@@ -123,8 +132,11 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                     </div>
                   </div>
 
+                  {/* Description (Clamped on mobile when collapsed) */}
                   {exp.description && exp.description.trim() !== "" && (
-                    <p className="text-slate-300 text-sm leading-relaxed font-light mb-5">
+                    <p className={`text-slate-300 text-xs sm:text-sm leading-relaxed font-light mb-4 ${
+                      expandedCardIds[exp.id] ? "" : "line-clamp-2"
+                    }`}>
                       {exp.description}
                     </p>
                   )}
@@ -139,54 +151,98 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                           company: exp.company,
                         })
                       }
-                      className="group/cert mb-6 p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/30 via-slate-900/40 to-indigo-950/20 border border-cyan-500/25 hover:border-cyan-400/60 transition-all duration-300 cursor-pointer flex items-center gap-4 shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.15)]"
+                      className="group/cert mb-4 p-2.5 sm:p-3 rounded-xl bg-gradient-to-r from-cyan-950/30 via-slate-900/40 to-indigo-950/20 border border-cyan-500/25 hover:border-cyan-400/60 transition-all duration-300 cursor-pointer flex items-center justify-between gap-3 shadow-sm hover:shadow-[0_0_20px_rgba(56,189,248,0.15)]"
                     >
-                      <div className="relative h-16 w-24 rounded-xl overflow-hidden border border-white/15 bg-black/60 flex-shrink-0 group-hover/cert:scale-105 transition-transform">
-                        <SmartMedia src={exp.certificateUrl} alt={exp.certificateTitle || "Certificate"} fill className="object-cover" />
-                        <div className="absolute inset-0 bg-black/20 group-hover/cert:bg-transparent transition-colors" />
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="relative h-12 w-16 sm:h-14 sm:w-20 rounded-lg overflow-hidden border border-white/15 bg-black/60 flex-shrink-0 group-hover/cert:scale-105 transition-transform">
+                          <SmartMedia src={exp.certificateUrl} alt={exp.certificateTitle || "Certificate"} fill className="object-cover" />
+                          <div className="absolute inset-0 bg-black/20 group-hover/cert:bg-transparent transition-colors" />
+                        </div>
+
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-cyan-400">
+                            <Award className="h-3 w-3 text-cyan-400" />
+                            <span>Verified Credential</span>
+                          </div>
+                          <h4 className="text-xs sm:text-sm font-semibold text-white truncate mt-0.5">
+                            {exp.certificateTitle || `${exp.role} Verification`}
+                          </h4>
+                        </div>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-cyan-400 mb-0.5">
-                          <Award className="h-3.5 w-3.5 text-cyan-400" />
-                          <span>Verified Credential & Certificate</span>
-                        </div>
-                        <h4 className="text-sm font-semibold text-white truncate">
-                          {exp.certificateTitle || `${exp.role} Verification`}
-                        </h4>
-                        <span className="text-[11px] font-mono text-slate-400 flex items-center gap-1 mt-0.5 group-hover/cert:text-cyan-300 transition-colors">
-                          <Eye className="h-3 w-3" /> Click to view full credential
-                        </span>
+                      <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-[10px] sm:text-[11px] font-mono text-cyan-300 flex-shrink-0 group-hover/cert:bg-cyan-500/20 transition-all">
+                        <Eye className="h-3 w-3" />
+                        <span>View</span>
                       </div>
                     </div>
                   )}
 
-                  {/* Achievements list */}
+                  {/* Achievements list (Smoothly expandable) */}
                   {exp.achievements && exp.achievements.length > 0 && (
-                    <div className="space-y-2 mb-6">
-                      {exp.achievements.map((ach, i) => (
-                        <div key={i} className="flex items-start gap-2.5 text-xs text-slate-300 font-light">
-                          <CheckCircle2 className="h-4 w-4 text-cyan-400 flex-shrink-0 mt-0.5" />
+                    <div className="space-y-2 mb-4">
+                      {(expandedCardIds[exp.id] ? exp.achievements : exp.achievements.slice(0, 2)).map((ach, i) => (
+                        <div key={i} className="flex items-start gap-2 text-xs text-slate-300 font-light">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400 flex-shrink-0 mt-0.5" />
                           <span>{ach}</span>
                         </div>
                       ))}
+                      {!expandedCardIds[exp.id] && exp.achievements.length > 2 && (
+                        <p className="text-[10px] font-mono text-cyan-400/80 pl-5">
+                          + {exp.achievements.length - 2} more milestones in this role
+                        </p>
+                      )}
                     </div>
                   )}
 
                   {/* Technologies used */}
                   {exp.technologies && exp.technologies.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-4 border-t border-white/10">
-                      {exp.technologies.map((t, i) => (
+                    <div className="flex flex-wrap gap-1.5 pt-3 border-t border-white/10">
+                      {(expandedCardIds[exp.id] ? exp.technologies : exp.technologies.slice(0, 4)).map((t, i) => (
                         <span
                           key={i}
-                          className="px-2.5 py-0.5 rounded-md bg-white/[0.04] border border-white/10 text-[11px] font-mono text-slate-400"
+                          className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/10 text-[10px] sm:text-[11px] font-mono text-slate-400"
                         >
                           {t}
                         </span>
                       ))}
+                      {!expandedCardIds[exp.id] && exp.technologies.length > 4 && (
+                        <span className="px-2 py-0.5 rounded-md bg-white/[0.02] border border-white/5 text-[10px] sm:text-[11px] font-mono text-cyan-400/70">
+                          +{exp.technologies.length - 4}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Card Expand / Collapse Toggle Bar */}
+                  {((exp.achievements && exp.achievements.length > 2) || (exp.description && exp.description.length > 120) || (exp.technologies && exp.technologies.length > 4)) && (
+                    <div className="pt-3 mt-3 border-t border-white/10 flex items-center justify-between">
+                      <button
+                        onClick={() => toggleExpand(exp.id)}
+                        className="inline-flex items-center gap-1.5 text-xs font-mono font-medium text-cyan-400 hover:text-cyan-300 transition-colors py-1 px-2.5 rounded-lg hover:bg-cyan-500/10 border border-cyan-500/10 hover:border-cyan-500/30"
+                      >
+                        <span>{expandedCardIds[exp.id] ? "Show Less" : "See More Details"}</span>
+                        <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-300 ${expandedCardIds[exp.id] ? "rotate-180" : ""}`} />
+                      </button>
+
+                      {exp.certificateUrl && (
+                        <button
+                          onClick={() =>
+                            setSelectedCertificate({
+                              url: exp.certificateUrl!,
+                              title: exp.certificateTitle || `${exp.role} Credential`,
+                              company: exp.company,
+                            })
+                          }
+                          className="inline-flex items-center gap-1.5 text-[11px] font-mono text-slate-400 hover:text-cyan-300 transition-colors py-1 px-2"
+                        >
+                          <Award className="h-3 w-3 text-cyan-400" />
+                          <span>Full Certificate</span>
+                        </button>
+                      )}
                     </div>
                   )}
                 </GlassCard>
+
               </motion.div>
             ))}
           </AnimatePresence>
