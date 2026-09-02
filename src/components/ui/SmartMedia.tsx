@@ -122,14 +122,16 @@ export default function SmartMedia({
       <div
         onClick={onClick}
         onContextMenu={(e) => e.preventDefault()}
-        className={`overflow-hidden select-none ${fill ? "absolute inset-0 w-full h-full" : "relative w-full h-full"}`}
+        className={`overflow-hidden select-none bg-black/60 flex items-center justify-center ${fill ? "absolute inset-0 w-full h-full" : "relative w-full h-full"}`}
       >
         <video
-          src={src}
-          preload="none"
+          key={src}
+          preload="auto"
           autoPlay={autoPlay}
           loop={loop}
           muted={muted}
+          // @ts-ignore
+          defaultMuted={muted}
           controls={controls}
           controlsList="nodownload noplaybackrate"
           disablePictureInPicture
@@ -137,9 +139,12 @@ export default function SmartMedia({
           disableRemotePlayback
           playsInline={playsInline}
           onContextMenu={(e) => e.preventDefault()}
-          className={`${className} pointer-events-auto select-none`}
-          onError={() => setError(true)}
-        />
+          className={`${className} pointer-events-auto select-none w-full h-full object-contain`}
+        >
+          <source src={src} type="video/mp4" />
+          <source src={src} type="video/webm" />
+          Your browser does not support HTML5 video streaming.
+        </video>
         {showBadge && !controls && (
           <div className="absolute bottom-2 right-2 px-2 py-0.5 rounded bg-black/80 backdrop-blur-md border border-white/10 text-[9px] font-mono text-cyan-300 flex items-center gap-1 pointer-events-none z-10">
             <Film className="h-2.5 w-2.5" />
@@ -149,6 +154,7 @@ export default function SmartMedia({
       </div>
     );
   }
+
 
   // --- IMAGE RENDERING (JPG, PNG, WEBP, SVG, GIF, AVIF) ---
   const isDataOrSvg = Boolean(

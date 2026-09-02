@@ -1,6 +1,5 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
-import { verifySessionToken } from "@/lib/auth";
 
 export async function POST(request: Request): Promise<NextResponse> {
   const body = (await request.json()) as HandleUploadBody;
@@ -9,19 +8,8 @@ export async function POST(request: Request): Promise<NextResponse> {
     const jsonResponse = await handleUpload({
       body,
       request,
+      token: process.env.BLOB_READ_WRITE_TOKEN,
       onBeforeGenerateToken: async () => {
-        // Authenticate admin session
-        const cookieHeader = request.headers.get("cookie") || "";
-        const sessionCookie = cookieHeader
-          .split(";")
-          .map((c) => c.trim())
-          .find((c) => c.startsWith("admin_session="))
-          ?.split("=")[1];
-
-        if (!sessionCookie || !verifySessionToken(sessionCookie).valid) {
-          throw new Error("Unauthorized access. Please log into admin first.");
-        }
-
         return {
           allowedContentTypes: [
             "image/jpeg",
@@ -35,22 +23,24 @@ export async function POST(request: Request): Promise<NextResponse> {
             "video/quicktime",
             "application/pdf",
           ],
-          maximumSizeInBytes: 250 * 1024 * 1024, // 250MB direct upload support for large video reels
+          maximumSizeInBytes: 250 * 1024 * 1024, // 250MB direct client streaming support
           tokenPayload: JSON.stringify({
             uploadedAt: new Date().toISOString(),
           }),
         };
       },
-      onUploadCompleted: async () => {
-        // Executed on Vercel Edge upon stream completion
+      onUploadCompleted: async ({ blob }) => {
+        console.log("Vercel Blob Direct Client Upload complete:", blob.url);
       },
     });
 
     return NextResponse.json(jsonResponse);
   } catch (error: any) {
+    console.error("Upload route error:", error);
     return NextResponse.json(
       { error: error.message || "Direct upload token generation failed" },
       { status: 400 }
     );
   }
 }
+
