@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Briefcase, Award, CheckCircle2, X, ExternalLink, Eye, Sparkles, ChevronDown, MapPin } from "lucide-react";
+import { Briefcase, Award, CheckCircle2, X, ExternalLink, Eye, Sparkles, ChevronDown, MapPin, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 import GlassCard from "../ui/GlassCard";
 import SmartMedia from "../ui/SmartMedia";
 import { ExperienceData } from "@/lib/types";
@@ -14,10 +14,28 @@ interface ExperienceSectionProps {
 export default function ExperienceSection({ experience }: ExperienceSectionProps) {
   const [selectedCertificate, setSelectedCertificate] = useState<{ url: string; title: string; company: string } | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [zoomScale, setZoomScale] = useState(1);
+
+  useEffect(() => {
+    if (selectedCertificate) {
+      document.body.style.overflow = "hidden";
+      setZoomScale(1);
+
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setSelectedCertificate(null);
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    }
+  }, [selectedCertificate]);
 
   const INITIAL_LIMIT = 4;
   const displayedExperience = showAll ? experience : experience.slice(0, INITIAL_LIMIT);
   const hasMore = experience.length > INITIAL_LIMIT;
+
 
   return (
     <section id="experience" className="relative py-28 px-4 md:px-8 lg:px-16 overflow-hidden">
@@ -225,32 +243,77 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setSelectedCertificate(null)}
-                  className="h-8 w-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-slate-400 hover:text-white transition-all"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                <div className="flex items-center gap-2">
+                  {/* Interactive Zoom Controls */}
+                  <div className="flex items-center bg-white/[0.04] border border-white/10 rounded-xl p-1 gap-1">
+                    <button
+                      onClick={() => setZoomScale((z) => Math.max(Number((z - 0.2).toFixed(1)), 0.6))}
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all"
+                      title="Zoom Out"
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </button>
+                    <span className="text-[11px] font-mono text-cyan-400 px-1.5 select-none min-w-[38px] text-center">
+                      {Math.round(zoomScale * 100)}%
+                    </span>
+                    <button
+                      onClick={() => setZoomScale((z) => Math.min(Number((z + 0.2).toFixed(1)), 2.2))}
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all"
+                      title="Zoom In"
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => setZoomScale(1)}
+                      className="p-1.5 rounded-lg hover:bg-white/10 text-slate-300 hover:text-white transition-all"
+                      title="Reset Zoom"
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedCertificate(null)}
+                    className="h-8 w-8 rounded-full bg-white/[0.05] hover:bg-white/[0.1] flex items-center justify-center text-slate-400 hover:text-white transition-all"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
+              {/* Scrollable Protected Document Viewport */}
               <div 
-                onContextMenu={(e) => e.preventDefault()}
-                className="relative flex-1 min-h-[320px] sm:min-h-[500px] w-full rounded-2xl overflow-hidden bg-black/80 border border-white/10 flex items-center justify-center p-2 select-none"
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  return false;
+                }}
+                data-lenis-prevent="true"
+                className="relative flex-1 min-h-[380px] sm:min-h-[540px] max-h-[68vh] w-full rounded-2xl overflow-y-auto overscroll-contain bg-black/90 border border-white/10 p-2 select-none custom-modal-scroll"
               >
-                <SmartMedia
-                  src={selectedCertificate.url}
-                  alt={selectedCertificate.title}
-                  fill
-                  controls
-                  isFullView
-                  className="object-contain w-full h-full pointer-events-auto"
-                />
+                <div
+                  style={{
+                    transform: `scale(${zoomScale})`,
+                    transformOrigin: "top center",
+                    transition: "transform 0.15s ease-out",
+                  }}
+                  className="w-full h-full min-h-[520px] flex items-center justify-center"
+                >
+                  <SmartMedia
+                    src={selectedCertificate.url}
+                    alt={selectedCertificate.title}
+                    fill
+                    controls
+                    isFullView
+                    className="object-contain w-full h-full pointer-events-auto"
+                  />
+                </div>
               </div>
 
               <div className="pt-4 mt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
                 <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
                   <Award className="h-4 w-4 text-cyan-400" />
-                  <span>Verified Credential Certificate</span>
+                  <span>Verified Credential Certificate • Digital Rights Protected</span>
                 </div>
 
                 <div className="flex items-center gap-3">
@@ -262,6 +325,7 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                   </button>
                 </div>
               </div>
+
             </motion.div>
           </div>
         )}

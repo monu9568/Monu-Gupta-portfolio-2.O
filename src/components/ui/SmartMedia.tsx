@@ -96,14 +96,29 @@ export default function SmartMedia({
             <iframe
               src={`${src}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
               title={alt}
-              className="w-full h-full min-h-[420px] border-0 select-none"
+              className="w-full h-full min-h-[500px] border-0 select-none"
             />
-            {/* Top Transparent Click & Context Shield: blocks right-click, Save As, and direct PDF menu extraction */}
+            {/* Authenticated Holographic Overlay Watermark */}
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 z-10 pointer-events-none select-none flex items-center justify-center opacity-[0.055] overflow-hidden"
+            >
+              <div className="text-white text-base sm:text-xl font-mono font-black tracking-widest -rotate-25 whitespace-nowrap uppercase select-none pointer-events-none">
+                © MONU GUPTA • VERIFIED CREDENTIAL • UNAUTHORIZED REPRODUCTION PROHIBITED
+              </div>
+            </div>
+            {/* Top Transparent Click & Context Shield: blocks right-click, Save As, while forwarding wheel scroll */}
             <div
               onContextMenu={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 return false;
+              }}
+              onWheel={(e) => {
+                const container = e.currentTarget.closest('[data-lenis-prevent="true"]') as HTMLElement | null;
+                if (container) {
+                  container.scrollTop += e.deltaY;
+                }
               }}
               className="absolute inset-0 z-20 pointer-events-auto bg-transparent select-none cursor-default"
             />
@@ -113,6 +128,7 @@ export default function SmartMedia({
               <FileText className="h-4 w-4 text-cyan-400" />
               <span>Verified Credential: {alt}</span>
             </span>
+
             <span className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 select-none">
               🔒 Protected Digital Credential
             </span>

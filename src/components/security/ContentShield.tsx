@@ -79,6 +79,12 @@ export default function ContentShield({ settings }: ContentShieldProps) {
 
     // 3. Safe Keystroke Protection (Win+PrtScn, Win+Shift+S, Save, Print)
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Preemptive Windows key capture protection
+      // Pressing Win key (Meta) instantly blanks the screen so Win+PrtScn grabs pure black
+      if (!isTouchDevice && (e.key === "Meta" || e.code === "OSLeft" || e.code === "MetaLeft" || e.code === "OSRight" || e.code === "MetaRight")) {
+        triggerAntiCaptureVeil();
+      }
+
       // PrintScreen / Win + PrtScn capture interception
       if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44) {
         e.preventDefault();
@@ -112,10 +118,11 @@ export default function ContentShield({ settings }: ContentShieldProps) {
     };
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44) {
+      if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44 || e.key === "Meta") {
         triggerAntiCaptureVeil();
       }
     };
+
 
     // 4. Desktop Snipping Tool / Focus Steal Protection
     // When external screenshot overlays (like Snipping Tool or Game Bar) take OS focus, obscure media
