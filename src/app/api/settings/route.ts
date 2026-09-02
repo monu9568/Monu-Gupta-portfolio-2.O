@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getPortfolioData, savePortfolioData } from "@/lib/db";
 import { defaultPortfolioData } from "@/lib/defaultData";
 import { verifySessionToken } from "@/lib/auth";
@@ -14,6 +15,7 @@ export async function POST(req: NextRequest) {
 
     if (action === "reset_defaults") {
       savePortfolioData(defaultPortfolioData);
+      revalidatePath("/");
       return NextResponse.json({ success: true, message: "Reset to factory portfolio defaults." });
     }
 
@@ -22,8 +24,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid backup data schema." }, { status: 400 });
       }
       savePortfolioData(backupData);
+      revalidatePath("/");
       return NextResponse.json({ success: true, message: "Portfolio data restored from backup." });
     }
+
 
     if (action === "export_backup") {
       const data = getPortfolioData();

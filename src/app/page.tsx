@@ -10,8 +10,10 @@ import Footer from "@/components/sections/Footer";
 import ContentShield from "@/components/security/ContentShield";
 import { getPortfolioData } from "@/lib/db";
 
-// Revalidate data on Edge CDN for instant 15ms global loading
-export const revalidate = 60;
+// Force dynamic SSR rendering so admin changes reflect instantly (0ms cache delay)
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 
 
 

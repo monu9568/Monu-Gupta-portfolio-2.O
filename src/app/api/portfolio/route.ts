@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getPortfolioData, updateHero, updateAbout, updateSettings, saveSkill, deleteSkill, saveExperience, deleteExperience, savePortfolioData } from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
+
 
 export async function GET() {
   try {
@@ -72,14 +74,17 @@ export async function PUT(req: NextRequest) {
 
     if (section === "full") {
       savePortfolioData(data);
+      revalidatePath("/");
       return NextResponse.json({ success: true });
     }
 
+    revalidatePath("/");
     return NextResponse.json({ error: "Invalid section" }, { status: 400 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Failed to update" }, { status: 500 });
   }
 }
+
 
 export async function DELETE(req: NextRequest) {
   try {

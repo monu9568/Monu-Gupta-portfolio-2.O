@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getProjects, saveProject, deleteProject } from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
 
@@ -20,6 +21,7 @@ export async function POST(req: NextRequest) {
 
     const projectData = await req.json();
     const saved = saveProject(projectData);
+    revalidatePath("/");
     return NextResponse.json({ success: true, project: saved });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Failed to save project" }, { status: 500 });
@@ -40,8 +42,10 @@ export async function DELETE(req: NextRequest) {
     }
 
     const success = deleteProject(id);
+    revalidatePath("/");
     return NextResponse.json({ success });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Failed to delete project" }, { status: 500 });
   }
 }
+

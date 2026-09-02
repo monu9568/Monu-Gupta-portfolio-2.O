@@ -144,6 +144,7 @@ export default function ProjectsSection({ projects }: ProjectsSectionProps) {
                         alt={project.title}
                         fill
                         showBadge
+                        poster={(project.gallery || []).find((g) => g && !g.match(/\.(mp4|webm|mov)$/i)) || "/images/personal/cube-studio.webp"}
                         className="object-cover transition-transform duration-700 group-hover:scale-105"
                         sizes="(max-width: 768px) 100vw, 440px"
                       />
@@ -171,6 +172,7 @@ export default function ProjectsSection({ projects }: ProjectsSectionProps) {
                         </div>
                       </div>
                     </div>
+
 
                     {/* Project Title & Short Subtitle */}
                     <h3 className="text-xl font-bold text-white tracking-tight group-hover:text-cyan-300 transition-colors mb-2">

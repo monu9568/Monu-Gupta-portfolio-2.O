@@ -118,6 +118,16 @@ export default function ContentShield({ settings }: ContentShieldProps) {
 
   return (
     <>
+      {/* Dynamic Digital Rights Specular Watermark Matrix */}
+      <div
+        className="pointer-events-none fixed inset-0 z-30 overflow-hidden select-none opacity-[0.025]"
+        aria-hidden="true"
+        style={{
+          backgroundImage: `radial-gradient(circle at 1px 1px, rgba(56,189,248,0.4) 1px, transparent 0)`,
+          backgroundSize: "36px 36px",
+        }}
+      />
+
       {/* Targeted Anti-Capture Instant Screen Privacy Veil (Triggers ONLY when PrintScreen / Win+PrtScn is pressed) */}
       <AnimatePresence>
         {isPrivacyObscured && (
@@ -137,6 +147,7 @@ export default function ContentShield({ settings }: ContentShieldProps) {
           </motion.div>
         )}
       </AnimatePresence>
+
 
       {/* Floating Security Feedback Pill */}
       <AnimatePresence>

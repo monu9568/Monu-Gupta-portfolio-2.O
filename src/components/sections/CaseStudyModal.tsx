@@ -123,9 +123,11 @@ export default function CaseStudyModal({ project, onClose }: CaseStudyModalProps
                   fill
                   controls={currentMedia.isVideo}
                   autoPlay
+                  poster={(project.gallery || []).find((g) => g && !g.match(/\.(mp4|webm|mov)$/i)) || "/images/personal/cube-studio.webp"}
                   className="object-contain w-full h-full"
                 />
               </div>
+
 
               {/* Multi-Preview Thumbnails & Selector Strip */}
               {mediaList.length > 1 && (
