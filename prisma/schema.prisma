@@ -1,0 +1,122 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model AdminUser {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // Hashed password
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HeroContent {
+  id               String   @id @default("default-hero")
+  name             String
+  title            String
+  tagline          String
+  availabilityTag  String
+  bio              String
+  primaryCtaText   String
+  primaryCtaLink   String
+  secondaryCtaText String
+  secondaryCtaLink String
+  githubUrl        String
+  linkedinUrl      String
+  twitterUrl       String
+  email            String
+  avatarUrl        String
+  cubeFrontImg     String
+  cubeRightImg     String
+  cubeBackImg      String
+  cubeLeftImg      String
+  cubeTopImg       String
+  cubeBottomImg    String
+  updatedAt        DateTime @updatedAt
+}
+
+model Project {
+  id             String   @id @default(uuid())
+  title          String
+  slug           String   @unique
+  subtitle       String
+  category       String   // "3D / WebGL", "AI / Data", "Spatial UI", "Full Stack"
+  status         String   // "Production", "Ongoing", "Experimental"
+  featured       Boolean  @default(true)
+  order          Int      @default(0)
+  thumbnail      String
+  gallery        String   // JSON stringified array of image URLs
+  videoUrl       String?
+  techStack      String   // JSON stringified array of strings
+  problem        String
+  solution       String
+  architecture   String
+  impact         String
+  performance    String
+  liveUrl        String?
+  githubUrl      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Skill {
+  id          String   @id @default(uuid())
+  name        String
+  category    String   // "Frontend & 3D", "Backend & Cloud", "AI & Data", "Spatial & Design"
+  level       Int      @default(90) // 1-100
+  icon        String?  // icon identifier
+  order       Int      @default(0)
+  highlight   Boolean  @default(false)
+  description String?
+}
+
+model Experience {
+  id               String   @id @default(uuid())
+  role             String
+  company          String
+  location         String?
+  period           String
+  type             String   // "Full-time", "Contract", "Open Source", "Education"
+  order            Int      @default(0)
+  description      String
+  achievements     String  // JSON stringified array
+  technologies     String  // JSON stringified array
+  certificateUrl   String?
+  certificateTitle String?
+}
+
+model AboutContent {
+  id              String   @id @default("default-about")
+  storyParagraph1 String
+  storyParagraph2 String
+  philosophyTitle String
+  philosophyText  String
+  coreValues      String   // JSON stringified array of { title, desc }
+  hardwareSpecs   String   // JSON stringified array of { label, value }
+  updatedAt       DateTime @updatedAt
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  subject   String?
+  message   String
+  status    String   @default("UNREAD") // "UNREAD", "READ", "ARCHIVED"
+  createdAt DateTime @default(now())
+}
+
+model SiteSetting {
+  id            String   @id @default("default-settings")
+  siteTitle     String
+  metaDesc      String
+  ogImageUrl    String?
+  accentColor   String   @default("#38bdf8")
+  analyticsEnabled Boolean @default(true)
+  updatedAt     DateTime @updatedAt
+}

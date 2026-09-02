@@ -1,0 +1,643 @@
+{
+  "hero": {
+    "id": "default-hero",
+    "name": "Monu Gupta",
+    "title": "Full-Stack Developer • Data Analyst • AI & ML Solutions",
+    "tagline": "Crafting luxury 3D interfaces, liquid glass aesthetics, and intelligent digital instruments.",
+    "availabilityTag": "Available for Development & Data Projects",
+    "showAvailabilityTag": true,
+    "showIdentitySubtitle": true,
+    "headlinePrefix": "Turning Ideas ",
+    "headlineGradient": "Into Elegant",
+    "headlineSuffix": " Digital Solutions.",
+    "bio": "I create modern websites, scalable applications, interactive dashboards, and intelligent data solutions by combining software engineering, analytics, and machine learning.",
+    "primaryCtaText": "View My Work",
+    "primaryCtaLink": "#projects",
+    "secondaryCtaText": "Let's Connect",
+    "secondaryCtaLink": "#contact",
+    "githubUrl": "https://github.com/monu9568",
+    "linkedinUrl": "https://www.linkedin.com/in/monu-gupta-109e/",
+    "twitterUrl": "https://x.com",
+    "email": "monu90651@gmail.com",
+    "avatarUrl": "/images/personal/cube-front.png",
+    "showStats": true,
+    "stats": [
+      {
+        "id": "stat-1",
+        "value": "15+",
+        "label": "Projects",
+        "color": "text-white"
+      },
+      {
+        "id": "stat-2",
+        "value": "Full Stack ",
+        "label": "Development",
+        "color": "text-cyan-400"
+      },
+      {
+        "id": "stat-3",
+        "value": "Python ",
+        "label": "Data & ML",
+        "color": "text-white"
+      },
+      {
+        "id": "stat-4",
+        "value": "Power BI ",
+        "label": "Analytics",
+        "color": "text-indigo-400"
+      }
+    ],
+    "cubeFrontImg": "/images/personal/cube-studio.webp",
+    "cubeRightImg": "/images/personal/cube-creative.webp",
+    "cubeBackImg": "/images/personal/1788349850535-Gemini_Generated_Image_croped.png",
+    "cubeLeftImg": "/images/personal/1788351109530-Gemini_Generated_Image_5d4v5f5d4v5f5d4v.jpg",
+    "cubeTopImg": "/images/personal/1788351047324-Gemini_Generated_Image_ayitx8ayitx8ayit__1_.jpg",
+    "cubeBottomImg": "/images/personal/cube-front.webp",
+    "contactBadge": "LET'S CONNECT",
+    "contactHeadingPrefix": "Let’s Build",
+    "contactHeadingGradient": "Something Meaningful.",
+    "contactSubtitle": "Available for full-stack applications, data analytics dashboards, AI solutions, and engineering projects.",
+    "contactDirectEmailLabel": "Direct Email",
+    "contactFormTitle": "Send Message",
+    "contactFormSubtitle": "Your inquiry will be sent directly to the developer's dashboard.",
+    "contactSubmitButtonText": "Send Message",
+    "showGithubLink": true,
+    "showLinkedinLink": true,
+    "showTwitterLink": true
+  },
+  "projects": [
+    {
+      "id": "proj-2",
+      "title": "Musafir Cafe",
+      "slug": "musafir-cafe",
+      "subtitle": "A Cinematic Luxury Café Experience Designed for Modern Hospitality",
+      "category": "Spatial UI",
+      "status": "Production",
+      "featured": true,
+      "order": 1,
+      "thumbnail": "/video/1788349518853-musafir_cafe-frontent.mp4",
+      "gallery": [
+        "/video/1788349533679-musafir-cafe-CMS.mp4",
+        "/images/personal/cube-code.png"
+      ],
+      "videoUrl": null,
+      "techStack": [
+        "Next.js",
+        "React",
+        "TypeScript",
+        "Tailwind CSS",
+        "Framer Motion",
+        "GSAP"
+      ],
+      "problem": "Creating scroll interactions that feel like a guided journey rather than triggering random animations required careful synchronization of motion, timing, and user focus.",
+      "solution": "Implemented a high-quality frame-sequence animation synchronized with scroll progress to create cinematic camera movement without relying on heavy video playback.",
+      "architecture": "Frontend\nNext.js (App Router),React,TypeScript,Tailwind CSS\nMotion Engine\nGSAP,Framer Motion,Lenis Smooth Scroll",
+      "impact": "Musafir Café combines real-time visuals, smooth motion, and interactive 3D experiences while maintaining production-level performance across modern devices.",
+      "performance": "⚡ Performance   95+ Lighthouse Score  , Motion Quality 60 FPS Smooth Experience",
+      "liveUrl": "https://example.com/demo/synapse",
+      "githubUrl": "https://github.com/example/synapse-engine",
+      "hasCaseStudy": true
+    },
+    {
+      "id": "proj-4",
+      "title": "PrimeEstate",
+      "slug": "prime-estate",
+      "subtitle": "Decoupling browser physics to engineer an Apple-grade, high-performance canvas scrollytelling experience.",
+      "category": "Spatial UI",
+      "status": "Production",
+      "featured": true,
+      "order": 2,
+      "thumbnail": "/video/1788349567565-realEstate-frontent.mp4",
+      "gallery": [
+        "/images/projects/1788349590250-ChatGPT_Image_Aug_30__2026__12_05_41_PM.png",
+        "/images/personal/cube-lifestyle.png"
+      ],
+      "videoUrl": null,
+      "techStack": [
+        "Next.js",
+        "TypeScript",
+        "Framer Motion",
+        "Web Audio API",
+        "Lenis Smooth Scroll",
+        "HTML5 Canvas API",
+        "Tailwind CSS & CSS Variables"
+      ],
+      "problem": "Overcoming browser-specific Block Formatting Context (BFC) constraints where ancestor overflow rules broke sticky canvas tracking.",
+      "solution": "Traditional real estate websites overwhelm users with static listings and fragmented information. This platform simplifies the buying journey by combining interactive property discovery, realistic visualizations, and streamlined inquiry workflows into a single, intuitive experience.",
+      "architecture": "",
+      "impact": "",
+      "performance": "99/100 Lighthouse Performance | 60 FPS locked during scrolly flight | < 1.2s interactive load time",
+      "liveUrl": "https://example.com/demo/quantum",
+      "githubUrl": "https://github.com/example/quantum-fintech",
+      "hasCaseStudy": true
+    },
+    {
+      "id": "proj-3",
+      "title": "Restrolover",
+      "slug": "restrolover-restaurant",
+      "subtitle": "A modern hospitality experience powered by design and technology.",
+      "category": "Full Stack",
+      "status": "Ongoing",
+      "featured": true,
+      "order": 3,
+      "thumbnail": "/video/1788349612614-restaurant-frontent__2_.mp4",
+      "gallery": [
+        "/video/1788349621276-restaurant-CMS__2_.mp4",
+        "/images/personal/cube-studio.png"
+      ],
+      "videoUrl": null,
+      "techStack": [
+        "Next.js",
+        "React",
+        "Tailwind CSS v4 & Vanilla CSS",
+        "Zustand",
+        "Static Site Generation (SSG)"
+      ],
+      "problem": "Admins uploading high-resolution food photography (3MB - 10MB) directly from their phones or desktop computers filled up the browser’s strict 5MB localStorage limit instantly, crashing the state updates and leaving saving modals frozen.",
+      "solution": "Integrated a canvas utility that automatically resizes and compresses any uploaded image file down to ~30KB - 50KB at 75% quality before it ever hits state.",
+      "architecture": "",
+      "impact": "Downloaded and starred by 4,000+ creative developers; adopted into multiple commercial creative coding systems.",
+      "performance": "⚡ Performance: 99/100  Mobile-First UX: Grade A  Core Web Vitals: Passed (LCP: 0.9s)",
+      "liveUrl": "https://example.com/demo/liquid",
+      "githubUrl": "https://github.com/example/liquid-caustics",
+      "hasCaseStudy": true
+    },
+    {
+      "id": "proj-1",
+      "title": "Choyo An Hourly Room Booking System",
+      "slug": "hourly-room-booking-system",
+      "subtitle": "A full-stack PHP & MySQL application for hourly room reservations with a powerful admin management dashboard.",
+      "category": "Full Stack",
+      "status": "Production",
+      "featured": true,
+      "order": 4,
+      "thumbnail": "/video/1788349657014-Choyo-Project-Preview.mp4",
+      "gallery": [
+        "/images/projects/quantum-fintech.jpg"
+      ],
+      "videoUrl": null,
+      "techStack": [
+        "PHP",
+        "MySQL",
+        "HTML5",
+        "CSS3",
+        "JavaScript"
+      ],
+      "problem": "Many small hotels, hostels, and meeting spaces rely on manual booking methods, making it difficult to track room availability, prevent double bookings, and manage reservations efficiently. The objective was to build a centralized system that enables users to book rooms on an hourly basis while providing administrators with complete control over rooms and reservations.",
+      "solution": "Developed a full-stack Room Booking System using PHP and MySQL with an intuitive booking workflow. The application allows users to browse available rooms, select booking hours, submit reservations, and receive booking confirmation. A dedicated admin panel enables administrators to manage rooms, bookings, pricing, and customer information from a single dashboard.",
+      "architecture": "Frontend: HTML5, CSS3, JavaScript\n\nBackend: PHP\n\nDatabase: MySQL\n\nThe application follows a client-server architecture where PHP handles business logic and MySQL stores booking, room, and customer data. CRUD operations are implemented for room management and reservation handling.",
+      "impact": "• Simplified room reservation process\n• Reduced manual booking management\n• Prevented booking conflicts through availability checks\n• Responsive interface for desktop and mobile devices\n• Centralized admin dashboard for efficient management",
+      "performance": "PHP MySQL Responsive UI  Admin Dashboard  Booking Management",
+      "liveUrl": "https://example.com/demo/aura",
+      "githubUrl": "https://github.com/example/aura-visionos",
+      "hasCaseStudy": true
+    },
+    {
+      "id": "proj-1787593788919",
+      "title": "Google Play Store Data Analysis",
+      "slug": "Google -Play -Store- Data -Analysis",
+      "subtitle": "Uncovering App Success Patterns Through Data Analytics, Machine Learning & Interactive Visualization",
+      "category": "AI / Data",
+      "status": "Production",
+      "featured": true,
+      "order": 5,
+      "thumbnail": "/images/projects/1788082607132-Playstore_Apps_Dashboard.png",
+      "gallery": [
+        "/images/projects/spatial-vision-os.jpg"
+      ],
+      "videoUrl": null,
+      "techStack": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Scikit-learn",
+        "Random Forest Regression",
+        "Machine Learning",
+        "Feature Engineering",
+        "EDA",
+        "SQL",
+        "Power BI",
+        "Matplotlib",
+        "Seaborn",
+        "Jupyter Notebook"
+      ],
+      "problem": "Cleaning and preprocessing raw, inconsistent Play Store datasets.\nHandling missing values, duplicates, and mixed-format numerical data.\nIdentifying key factors influencing app ratings and user adoption.\nBuilding a predictive model with highly variable real-world app behavior.\nTransforming analytical findings into an interactive and understandable dashboard. ",
+      "solution": "Developed an end-to-end analytics pipeline using Python for data cleaning, preprocessing, and exploratory analysis.\nApplied feature engineering techniques to prepare data for machine learning.\nBuilt a Random Forest Regression model to analyze app rating prediction patterns.\nCreated an interactive Power BI dashboard to visualize app categories, installs, ratings, and pricing insights.",
+      "architecture": "",
+      "impact": "",
+      "performance": "End-to-End Data Analytics Pipeline",
+      "liveUrl": "",
+      "githubUrl": "https://github.com/monu9568/Google_PlayStore_Data_Analysis",
+      "hasCaseStudy": true
+    },
+    {
+      "id": "proj-1788083019296",
+      "title": "Used Bike Price Prediction Dashboard",
+      "slug": "used-bike-price-prediction-dashboard",
+      "subtitle": "Predicting Used Bike Market Prices Using Machine Learning & Interactive Business Intelligence",
+      "category": "AI / Data",
+      "status": "Production",
+      "featured": true,
+      "order": 6,
+      "thumbnail": "/images/projects/1788083013557-Bike_Prediction_Dashboard.png",
+      "gallery": [],
+      "videoUrl": null,
+      "techStack": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Scikit-learn",
+        "Random Forest Regression",
+        "Machine Learning",
+        "Feature Engineering",
+        "EDA",
+        "SQL",
+        "Power BI",
+        "Matplotlib",
+        "Seaborn",
+        "Jupyter Notebook"
+      ],
+      "hasCaseStudy": true,
+      "problem": "The used bike market has multiple factors affecting pricing, including brand, model year, mileage, engine power, ownership history, and usage. Determining accurate resale prices manually is difficult due to complex relationships between these variables.",
+      "solution": "Developed an end-to-end machine learning pipeline for used bike price prediction.\nPerformed data cleaning, feature engineering, and exploratory data analysis to extract meaningful patterns.\nBuilt a Random Forest Regression model to predict bike resale prices with high accuracy.\nCreated an interactive Power BI dashboard showcasing pricing trends, market insights, and model performance.",
+      "architecture": "",
+      "impact": "",
+      "performance": "High Accuracy Prediction Model Achieved R² Score of 0.91",
+      "liveUrl": "",
+      "githubUrl": "https://github.com/monu9568/Bike-Price-Prediction"
+    },
+    {
+      "id": "proj-1788083363239",
+      "title": "Fake vs Genuine Instagram Account Detection ",
+      "slug": "fake-vs-genuine-instagram-account-detection-",
+      "subtitle": "Detecting Fake Social Media Accounts Using Machine Learning & Behavioral Analytics",
+      "category": "AI / Data",
+      "status": "Production",
+      "featured": true,
+      "order": 7,
+      "thumbnail": "/images/projects/1788083357412-Insta_Dashboard.png",
+      "gallery": [],
+      "videoUrl": null,
+      "techStack": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Scikit-learn",
+        "Random Forest Classifier",
+        "Machine Learning",
+        "Classification Algorithms",
+        "Feature Engineering",
+        "EDA",
+        "Matplotlib",
+        "Seaborn",
+        "Power BI",
+        "Jupyter Notebook"
+      ],
+      "hasCaseStudy": true,
+      "problem": "The rapid growth of social media platforms has increased the presence of fake and spam accounts, making it difficult to identify authentic users manually. Detecting suspicious accounts requires analyzing complex user behavior patterns such as followers, following, engagement, and activity metrics.",
+      "solution": "Developed a machine learning-based classification system to identify fake and genuine Instagram accounts.\nPerformed data preprocessing, feature engineering, and exploratory data analysis to discover behavioral patterns.\nBuilt a Random Forest Classifier for account classification.\nAnalyzed key indicators such as followers, following ratio, engagement metrics, and activity patterns.",
+      "architecture": "",
+      "impact": "",
+      "performance": "AI-Powered Fraud Detection",
+      "liveUrl": "",
+      "githubUrl": "https://github.com/monu9568/Instagram-Fake-vs-Genuine-Accounts"
+    }
+  ],
+  "skills": [
+    {
+      "id": "sk-1",
+      "name": "React.js & Next.js",
+      "category": "Frontend & 3D",
+      "level": 96,
+      "icon": "Box",
+      "order": 1,
+      "highlight": true,
+      "description": "Modern component architecture, server-side rendering, routing, and optimized web applications"
+    },
+    {
+      "id": "sk-2",
+      "name": "Node.js, Express & APIs",
+      "category": "Backend & Cloud",
+      "level": 91,
+      "icon": "Atom",
+      "order": 2,
+      "highlight": true,
+      "description": "REST APIs, authentication, backend services, and scalable application architecture."
+    },
+    {
+      "id": "sk-3",
+      "name": "Python, Java, C & C++",
+      "category": "Frontend & 3D",
+      "level": 90,
+      "icon": "Code",
+      "order": 3,
+      "highlight": false,
+      "description": "Strong programming fundamentals, problem-solving, scripting, and application development."
+    },
+    {
+      "id": "sk-4",
+      "name": "MySQL, PostgreSQL & Supabase",
+      "category": "Backend & Cloud",
+      "level": 93,
+      "icon": "Zap",
+      "order": 4,
+      "highlight": true,
+      "description": "Database design, schema modeling, SQL queries, optimization, and reliable data management."
+    },
+    {
+      "id": "sk-5",
+      "name": "Python Data Stack",
+      "category": "AI & Data",
+      "level": 90,
+      "icon": "Server",
+      "order": 5,
+      "highlight": false,
+      "description": "NumPy, Pandas, Scikit-learn, data analysis, machine learning workflows."
+    },
+    {
+      "id": "sk-6",
+      "name": "PostgreSQL & SQLite (Prisma)",
+      "category": "Backend & Cloud",
+      "level": 92,
+      "icon": "Database",
+      "order": 6,
+      "highlight": true,
+      "description": "Schema Design, Query Optimization, Atomic Transactions"
+    },
+    {
+      "id": "sk-7",
+      "name": "GSAP, Framer Motion & Three.js",
+      "category": "Spatial & Design",
+      "level": 90,
+      "icon": "Cpu",
+      "order": 7,
+      "highlight": false,
+      "description": "Interactive animations, smooth transitions, and immersive web experiences"
+    },
+    {
+      "id": "sk-8",
+      "name": "AI Agent & LLM Orchestration",
+      "category": "AI & Data",
+      "level": 85,
+      "icon": "Sparkles",
+      "order": 8,
+      "highlight": true,
+      "description": "RAG architectures, Function Calling, Prompt Engineering"
+    },
+    {
+      "id": "sk-9",
+      "name": "Modern Deployment",
+      "category": "Backend & Cloud",
+      "level": 85,
+      "icon": "Eye",
+      "order": 9,
+      "highlight": true,
+      "description": "Vercel, hosting workflows, environment management, and production deployment."
+    }
+  ],
+  "experience": [
+    {
+      "id": "exp-1",
+      "role": "Data Analyst ",
+      "company": "Unified Mentor ",
+      "location": "Mumbai Maharashtra",
+      "period": "",
+      "type": "",
+      "order": 1,
+      "description": "Performed data analysis, visualization, and predictive modeling by cleaning datasets, extracting insights, building interactive dashboards, and developing machine learning models to support data-driven decision-making.",
+      "achievements": [
+        "Completed 5+ data analytics projects involving dashboards, EDA, and machine learning prediction models.",
+        "Developed interactive Power BI dashboards to visualize KPIs and generate actionable insights.",
+        "Built and evaluated predictive models using Scikit-learn with data preprocessing and feature engineering."
+      ],
+      "technologies": [
+        "Python",
+        "Pandas",
+        "NumPy",
+        "Scikit-learn",
+        "SQL",
+        "MySQL",
+        "Power BI",
+        "Excel",
+        "Matplotlib",
+        "Seaborn",
+        "Jupyter Notebook",
+        "Machine Learning",
+        "Predictive Analytics",
+        "EDA",
+        "Feature Engineering"
+      ],
+      "certificateUrl": "/images/personal/1788075916789-1762961733779.jpg",
+      "certificateTitle": null
+    },
+    {
+      "id": "exp-2",
+      "role": "MERN Full Stack Web Development",
+      "company": "TCR Innovation",
+      "location": "Navi Mumbai",
+      "period": "",
+      "type": "",
+      "order": 2,
+      "description": "Gained hands-on experience in building robust and dynamic web applications.",
+      "achievements": [
+        "Mastered MongoDB, Express.js, React.js, and Node.js to build scalable full-stack web applications.",
+        "Developed REST APIs, implemented authentication, database operations, and responsive UI components.",
+        "Applied industry-standard development practices including Git, API integration, and deployment workflows."
+      ],
+      "technologies": [
+        "MongoDB",
+        "Express.js",
+        "React.js",
+        "Node.js."
+      ],
+      "certificateUrl": "/images/personal/1788076201236-MonuGupta.pdf",
+      "certificateTitle": null
+    },
+    {
+      "id": "exp-3",
+      "role": "Data Analytics  Job Simulation",
+      "company": "Deloitte",
+      "location": "Remote",
+      "period": "",
+      "type": "",
+      "order": 3,
+      "description": "Completed Deloitte Data Analytics Job Simulation, gaining practical experience in data analysis, data visualization, and business problem-solving by working with real-world datasets and creating data-driven insights.",
+      "achievements": [
+        "Analyzed complex datasets to identify trends, patterns, and actionable business insights.",
+        "Performed data cleaning, exploration, and transformation to improve data quality.",
+        "Applied analytical thinking to solve business challenges using data-driven approaches."
+      ],
+      "technologies": [
+        "Excel",
+        "Power BI",
+        "Data Analysis",
+        "Data Visualization",
+        "Data Cleaning",
+        "Exploratory Data Analysis (EDA)",
+        "Business Intelligence",
+        "Data Reporting."
+      ],
+      "certificateUrl": "/images/personal/1788076354436-deloitte_data_analytics_certificate.pdf",
+      "certificateTitle": null
+    },
+    {
+      "id": "exp-4",
+      "role": "Live Masterclass Participant – Google AI Studio",
+      "company": "IID – The Digital School ",
+      "location": "Remote",
+      "period": "",
+      "type": "",
+      "order": 4,
+      "description": "",
+      "achievements": [
+        "Gained hands-on exposure to Google AI Studio and modern AI development workflows.",
+        "Learned practical applications of Generative AI, prompt engineering, and AI-powered tools.",
+        "Explored AI model interaction, experimentation, and real-world use cases.",
+        "Enhanced understanding of AI technologies and their applications in digital solutions."
+      ],
+      "technologies": [],
+      "certificateUrl": "/images/personal/1788076397076-Google_Data_Studio_MasterClass_Certificate___IIDE.pdf",
+      "certificateTitle": null
+    },
+    {
+      "id": "exp-1788076548440",
+      "role": "24-Hour Hackathon Participant",
+      "company": "VJTI",
+      "location": "Remote",
+      "period": "",
+      "type": "",
+      "order": 5,
+      "description": "",
+      "achievements": [
+        "Selected among the Top 10 teams from participants in a competitive 24-hour hackathon.",
+        "Developed and presented an innovative solution within a limited time frame.",
+        "Collaborated with team members to design, build, and optimize a working prototype.",
+        "Applied problem-solving, rapid development, and technical skills to address a real-world challenge."
+      ],
+      "technologies": [],
+      "certificateUrl": "/images/personal/1788076414057-WhatsApp_Image_2026-08-30_at_13.07.33.jpeg",
+      "certificateTitle": null
+    }
+  ],
+  "about": {
+    "id": "default-about",
+    "badge": "ORIGIN & PHILOSOPHY",
+    "titlePrefix": "My",
+    "titleGradient": "Journey",
+    "subtitle": "Building digital products where engineering meets design, data, and human experience.",
+    "storyTitle": "Engineering Beyond the Screen",
+    "showStoryTitle": true,
+    "storyParagraph1": "I see software as more than just code — it is a medium to create meaningful digital experiences.\nMy journey began with curiosity about how technology works behind the interface. Over time, I explored full-stack development, data analytics, machine learning, and modern interaction design to understand how ideas transform into scalable products.",
+    "showStoryParagraph1": true,
+    "storyParagraph2": "Through building real-world applications, dashboards, AI-powered solutions, and immersive web experiences, I have developed a mindset focused on clean architecture, thoughtful design, and performance-driven engineering.\nToday, I specialize in creating modern digital experiences using technologies like React, Next.js, Node.js, AI/ML workflows, and data-driven systems — combining technical depth with creative problem-solving.",
+    "showStoryParagraph2": true,
+    "additionalParagraphs": [],
+    "showHardwareSpecs": true,
+    "hardwareTitle": "Technical Foundation & Environment",
+    "hardwareSpecs": [
+      {
+        "label": "DEVELOPMENT MACHINE",
+        "value": "Powering code, AI & design.Powering code, AI & design."
+      },
+      {
+        "label": "FRONTEND ENGINEERING",
+        "value": "React • Next.js • TypeScript • Three.js"
+      },
+      {
+        "label": "BACKEND SYSTEMS",
+        "value": "Node.js • Express • REST APIs • MySQL • Supabase"
+      },
+      {
+        "label": "DATA & AI STACK",
+        "value": "Python • Pandas • Scikit-learn • Power BI"
+      }
+    ],
+    "showPhotoCard": true,
+    "photoUrl": "/images/about/profile-showcase.webp",
+    "photoOverlayTag": "Full-Stack • Data & AI",
+    "photoOverlayName": "Monu Gupta",
+    "showPhilosophy": true,
+    "philosophyTitle": "Engineering & Design Principles",
+    "philosophyText": "Every element must serve an intentional purpose. I focus on creating clean, intuitive user experiences backed by robust architectures, fluid interactions, and deep structural elegance.",
+    "coreValues": [
+      {
+        "title": "Physicality & Spatial Depth",
+        "desc": "Digital interfaces should behave with the physical weight, optical refractions, and tactile feedback of high-end physical instruments."
+      },
+      {
+        "title": "Performance as a Foundation",
+        "desc": "I prioritize high-performance engineering, ensuring smooth, responsive, and seamless experiences across all devices and screen sizes."
+      },
+      {
+        "title": "Micro-Craftsmanship",
+        "desc": "From subtle specular borders to custom spring easing curves, perfection lives in the sub-pixel details."
+      },
+      {
+        "title": "Intelligence & Purpose",
+        "desc": "Applying modern machine learning models and intelligent data processing to build practical, high-impact digital solutions."
+      }
+    ]
+  },
+  "settings": {
+    "id": "default-settings",
+    "siteTitle": "Monu Gupta — Full-Stack Developer • Data Analyst • AI & ML Solutions",
+    "metaDesc": "Portfolio of Monu Gupta — Full-Stack Developer, Data Analyst, and AI/ML Specialist building high-performance web applications, analytics dashboards, and intelligent software.",
+    "ogImageUrl": "/images/projects/spatial-vision-os.jpg",
+    "accentColor": "#38bdf8",
+    "analyticsEnabled": true,
+    "headerMonogram": "MG",
+    "showHeaderCmsLink": true,
+    "navItems": [
+      {
+        "id": "home",
+        "label": "Home",
+        "href": "#home",
+        "visible": true,
+        "icon": "Sparkles"
+      },
+      {
+        "id": "projects",
+        "label": "Projects",
+        "href": "#projects",
+        "visible": true,
+        "icon": "Layers"
+      },
+      {
+        "id": "skills",
+        "label": "Skills",
+        "href": "#skills",
+        "visible": true,
+        "icon": "Terminal"
+      },
+      {
+        "id": "experience",
+        "label": "Experience",
+        "href": "#experience",
+        "visible": true,
+        "icon": "Briefcase"
+      },
+      {
+        "id": "about",
+        "label": "About",
+        "href": "#about",
+        "visible": true,
+        "icon": "User"
+      },
+      {
+        "id": "contact",
+        "label": "Contact",
+        "href": "#contact",
+        "visible": true,
+        "icon": "Mail"
+      }
+    ],
+    "showFooter": true,
+    "footerMonogram": "MG",
+    "footerName": "Monu Gupta",
+    "footerCopyright": "© 2026 • All Rights Reserved",
+    "footerStatusTag": "Spatial Engine 2.0",
+    "showLiveClock": true,
+    "showBackToTop": true,
+    "footerLinks": []
+  }
+}

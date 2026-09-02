@@ -1,0 +1,47 @@
+[
+  {
+    "id": "msg-1788354679978",
+    "name": "Verification User",
+    "email": "test.verification@example.com",
+    "subject": "Vercel Performance Audit",
+    "message": "Verified submission from test suite.",
+    "status": "UNREAD",
+    "createdAt": "2026-09-02T13:11:19.978Z"
+  },
+  {
+    "id": "msg-1788205673776",
+    "name": "monu",
+    "email": "monu@gmail.com",
+    "subject": "web",
+    "message": "enquiry",
+    "status": "READ",
+    "createdAt": "2026-08-31T19:47:53.776Z"
+  },
+  {
+    "id": "msg-1788204972473",
+    "name": "monu",
+    "email": "monu@gmail.com",
+    "subject": "web inquiry",
+    "message": "testing",
+    "status": "READ",
+    "createdAt": "2026-08-31T19:36:12.473Z"
+  },
+  {
+    "id": "msg-1787476871471",
+    "name": "monu",
+    "email": "monu@gmail.com",
+    "subject": "testing",
+    "message": "just want to check is it working or not",
+    "status": "READ",
+    "createdAt": "2026-08-23T09:21:11.471Z"
+  },
+  {
+    "id": "msg-1787428265206",
+    "name": "Dr. Elena Rostova",
+    "email": "elena@quantumlabs.ai",
+    "subject": "Spatial Computing R&D Partnership",
+    "message": "We are developing next-gen neural interfaces and would love to collaborate on your liquid WebGL shaders.",
+    "status": "READ",
+    "createdAt": "2026-08-22T19:51:05.206Z"
+  }
+]
