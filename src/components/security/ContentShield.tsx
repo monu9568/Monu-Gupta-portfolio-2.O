@@ -125,15 +125,7 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       }
     };
 
-    // 4. Focus Loss & App Switching Protection (Desktop Snipping Tool & Phone Capture Defense)
-    const handleWindowBlur = () => {
-      // Ignore if focus simply moved to an interactive element within the page
-      if (document.activeElement && document.activeElement !== document.body && document.activeElement !== document.documentElement) {
-        return;
-      }
-      triggerAntiCaptureVeil();
-    };
-
+    // 4. Smartphone Screenshot & Tab Backgrounding Defense
     const handleVisibilityChange = () => {
       if (document.hidden || document.visibilityState === "hidden") {
         triggerAntiCaptureVeil();
@@ -144,7 +136,6 @@ export default function ContentShield({ settings }: ContentShieldProps) {
     window.addEventListener("dragstart", handleDragStart, { capture: true });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     window.addEventListener("keyup", handleKeyUp, { capture: true });
-    window.addEventListener("blur", handleWindowBlur, { capture: true });
     document.addEventListener("visibilitychange", handleVisibilityChange, { capture: true });
 
     return () => {
@@ -152,7 +143,6 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       window.removeEventListener("dragstart", handleDragStart, { capture: true } as any);
       window.removeEventListener("keydown", handleKeyDown, { capture: true } as any);
       window.removeEventListener("keyup", handleKeyUp, { capture: true } as any);
-      window.removeEventListener("blur", handleWindowBlur, { capture: true } as any);
       document.removeEventListener("visibilitychange", handleVisibilityChange, { capture: true } as any);
       if (typeof document !== "undefined") {
         document.documentElement.classList.remove("privacy-blackout");
@@ -161,6 +151,7 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       if (blackoutTimeoutRef.current) clearTimeout(blackoutTimeoutRef.current);
     };
+
   }, [isAdmin, disableRightClick, disableMediaSave, triggerAntiCaptureVeil, showSecurityToast]);
 
 

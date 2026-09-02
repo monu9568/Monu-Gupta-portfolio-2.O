@@ -91,13 +91,14 @@ export default function SmartMedia({
               e.stopPropagation();
               return false;
             }}
-            className="relative flex-1 w-full h-full min-h-[420px] rounded-xl overflow-hidden bg-slate-950 border border-white/15"
+            className="relative w-full h-[620px] sm:h-[820px] rounded-xl overflow-hidden bg-slate-950 border border-white/15"
           >
             <iframe
-              src={`${src}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
+              src={`${src}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
               title={alt}
-              className="w-full h-full min-h-[500px] border-0 select-none"
+              className="w-full h-full min-h-[620px] sm:min-h-[820px] border-0 select-none"
             />
+
             {/* Authenticated Holographic Overlay Watermark */}
             <div
               aria-hidden="true"

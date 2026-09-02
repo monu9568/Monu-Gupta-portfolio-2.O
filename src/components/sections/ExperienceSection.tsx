@@ -289,7 +289,7 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                   return false;
                 }}
                 data-lenis-prevent="true"
-                className="relative flex-1 min-h-[380px] sm:min-h-[540px] max-h-[68vh] w-full rounded-2xl overflow-y-auto overscroll-contain bg-black/90 border border-white/10 p-2 select-none custom-modal-scroll"
+                className="relative flex-1 min-h-[380px] sm:min-h-[560px] max-h-[72vh] w-full rounded-2xl overflow-y-auto overscroll-contain bg-black/90 border border-white/10 p-2 sm:p-4 select-none custom-modal-scroll"
               >
                 <div
                   style={{
@@ -297,18 +297,18 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                     transformOrigin: "top center",
                     transition: "transform 0.15s ease-out",
                   }}
-                  className="w-full h-full min-h-[520px] flex items-center justify-center"
+                  className="w-full flex flex-col items-center justify-start pb-6"
                 >
                   <SmartMedia
                     src={selectedCertificate.url}
                     alt={selectedCertificate.title}
-                    fill
                     controls
                     isFullView
-                    className="object-contain w-full h-full pointer-events-auto"
+                    className="w-full h-auto pointer-events-auto"
                   />
                 </div>
               </div>
+
 
               <div className="pt-4 mt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 flex-shrink-0">
                 <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
