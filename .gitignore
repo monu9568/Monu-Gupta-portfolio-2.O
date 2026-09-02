@@ -26,14 +26,6 @@ yarn-error.log*
 .env*.local
 .env
 
-# Media & Large Videos
-public/video/
-video/
-*.mp4
-*.mov
-*.mkv
-*.webm
-*.avi
 
 # Vercel
 .vercel

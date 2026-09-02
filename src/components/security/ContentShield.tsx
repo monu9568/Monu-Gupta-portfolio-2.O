@@ -18,7 +18,9 @@ export default function ContentShield({ settings }: ContentShieldProps) {
   const disableMediaSave = settings?.disableMediaSave !== false;
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isPrivacyObscured, setIsPrivacyObscured] = useState(false);
   const toastTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const blackoutTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const showSecurityToast = useCallback((msg: string) => {
     if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
@@ -27,6 +29,22 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       setToastMessage(null);
     }, 2400);
   }, []);
+
+  const triggerAntiCaptureVeil = useCallback(() => {
+    setIsPrivacyObscured(true);
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText("");
+      }
+    } catch {}
+
+    if (blackoutTimeoutRef.current) clearTimeout(blackoutTimeoutRef.current);
+    blackoutTimeoutRef.current = setTimeout(() => {
+      setIsPrivacyObscured(false);
+    }, 1200);
+
+    showSecurityToast("Screen capture intercepted. Media assets are encrypted.");
+  }, [showSecurityToast]);
 
   useEffect(() => {
     if (isAdmin || typeof window === "undefined") return;
@@ -52,12 +70,8 @@ export default function ContentShield({ settings }: ContentShieldProps) {
     const handleKeyDown = (e: KeyboardEvent) => {
       // PrintScreen / Win + PrtScn capture interception
       if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44) {
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText("");
-          }
-        } catch {}
-        showSecurityToast("Screen capture intercepted. Media assets are protected.");
+        e.preventDefault();
+        triggerAntiCaptureVeil();
         return;
       }
 
@@ -81,12 +95,7 @@ export default function ContentShield({ settings }: ContentShieldProps) {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44) {
-        try {
-          if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText("");
-          }
-        } catch {}
-        showSecurityToast("Screen capture intercepted. Media assets are protected.");
+        triggerAntiCaptureVeil();
       }
     };
 
@@ -101,14 +110,34 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       window.removeEventListener("keydown", handleKeyDown, { capture: true } as any);
       window.removeEventListener("keyup", handleKeyUp, { capture: true } as any);
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+      if (blackoutTimeoutRef.current) clearTimeout(blackoutTimeoutRef.current);
     };
-  }, [isAdmin, disableRightClick, disableMediaSave, showSecurityToast]);
-
+  }, [isAdmin, disableRightClick, disableMediaSave, triggerAntiCaptureVeil, showSecurityToast]);
 
   if (isAdmin) return null;
 
   return (
     <>
+      {/* Targeted Anti-Capture Instant Screen Privacy Veil (Triggers ONLY when PrintScreen / Win+PrtScn is pressed) */}
+      <AnimatePresence>
+        {isPrivacyObscured && (
+          <motion.div
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[999999] pointer-events-none bg-[#06070a] flex flex-col items-center justify-center text-center p-6 select-none"
+          >
+            <p className="text-sm font-mono text-cyan-400 uppercase tracking-widest">
+              Digital Rights Protected
+            </p>
+            <p className="text-xs text-slate-400 mt-1 max-w-xs font-light">
+              Screenshots and media captures are restricted on this portfolio.
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Floating Security Feedback Pill */}
       <AnimatePresence>
         {toastMessage && (
@@ -129,5 +158,6 @@ export default function ContentShield({ settings }: ContentShieldProps) {
     </>
   );
 }
+
 
 
