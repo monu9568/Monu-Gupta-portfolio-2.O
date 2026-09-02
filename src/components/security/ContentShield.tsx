@@ -32,6 +32,8 @@ export default function ContentShield({ settings }: ContentShieldProps) {
 
   const triggerAntiCaptureVeil = useCallback(() => {
     if (typeof document !== "undefined") {
+      document.documentElement.classList.add("privacy-blackout");
+      document.body.classList.add("privacy-blackout");
       document.documentElement.style.setProperty("filter", "contrast(0) brightness(0)", "important");
       document.documentElement.style.setProperty("opacity", "0", "important");
     }
@@ -46,19 +48,19 @@ export default function ContentShield({ settings }: ContentShieldProps) {
     if (blackoutTimeoutRef.current) clearTimeout(blackoutTimeoutRef.current);
     blackoutTimeoutRef.current = setTimeout(() => {
       if (typeof document !== "undefined") {
+        document.documentElement.classList.remove("privacy-blackout");
+        document.body.classList.remove("privacy-blackout");
         document.documentElement.style.removeProperty("filter");
         document.documentElement.style.removeProperty("opacity");
       }
       setIsPrivacyObscured(false);
-    }, 1400);
+    }, 1500);
 
     showSecurityToast("Digital Rights Protected: Screen capture intercepted.");
   }, [showSecurityToast]);
 
   useEffect(() => {
     if (isAdmin || typeof window === "undefined") return;
-
-    const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
     // 1. Right-Click Prevention
     const handleContextMenu = (e: MouseEvent) => {
@@ -77,23 +79,23 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       }
     };
 
-    // 3. Safe Keystroke Protection (Win+PrtScn, Win+Shift+S, Save, Print)
+    // 3. Universal Capture-Phase Keystroke Interception (Win+PrtScn, PrtScn, Win+Shift+S, Save, Print)
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Preemptive Windows key capture protection
-      // Pressing Win key (Meta) instantly blanks the screen so Win+PrtScn grabs pure black
-      if (!isTouchDevice && (e.key === "Meta" || e.code === "OSLeft" || e.code === "MetaLeft" || e.code === "OSRight" || e.code === "MetaRight")) {
+      // Intercept Windows Key (Meta) or Command Key on laptops
+      // Blanking occurs the exact millisecond Win is pressed, ensuring Win+PrtScn gets 100% black
+      if (e.key === "Meta" || e.code === "OSLeft" || e.code === "MetaLeft" || e.code === "OSRight" || e.code === "MetaRight") {
         triggerAntiCaptureVeil();
       }
 
-      // PrintScreen / Win + PrtScn capture interception
+      // PrintScreen capture interception
       if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44) {
         e.preventDefault();
         triggerAntiCaptureVeil();
         return;
       }
 
-      // Windows Snipping Tool (Win + Shift + S) or Mac Screenshot (Cmd + Shift + 4)
-      if (e.shiftKey && (e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S" || e.code === "KeyS" || e.key === "4" || e.code === "Digit4")) {
+      // Windows Snipping Tool (Win + Shift + S) or Mac Screenshot (Cmd + Shift + 3 / 4)
+      if (e.shiftKey && (e.metaKey || e.ctrlKey) && (e.key === "s" || e.key === "S" || e.code === "KeyS" || e.key === "3" || e.key === "4" || e.code === "Digit3" || e.code === "Digit4")) {
         e.preventDefault();
         triggerAntiCaptureVeil();
         return;
@@ -123,18 +125,18 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       }
     };
 
-
-    // 4. Desktop Snipping Tool / Focus Steal Protection
-    // When external screenshot overlays (like Snipping Tool or Game Bar) take OS focus, obscure media
+    // 4. Focus Loss & App Switching Protection (Desktop Snipping Tool & Phone Capture Defense)
     const handleWindowBlur = () => {
-      if (!isTouchDevice && typeof document !== "undefined") {
-        document.body.classList.add("capture-shield-active");
+      // Ignore if focus simply moved to an interactive element within the page
+      if (document.activeElement && document.activeElement !== document.body && document.activeElement !== document.documentElement) {
+        return;
       }
+      triggerAntiCaptureVeil();
     };
 
-    const handleWindowFocus = () => {
-      if (typeof document !== "undefined") {
-        document.body.classList.remove("capture-shield-active");
+    const handleVisibilityChange = () => {
+      if (document.hidden || document.visibilityState === "hidden") {
+        triggerAntiCaptureVeil();
       }
     };
 
@@ -142,23 +144,25 @@ export default function ContentShield({ settings }: ContentShieldProps) {
     window.addEventListener("dragstart", handleDragStart, { capture: true });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     window.addEventListener("keyup", handleKeyUp, { capture: true });
-    window.addEventListener("blur", handleWindowBlur);
-    window.addEventListener("focus", handleWindowFocus);
+    window.addEventListener("blur", handleWindowBlur, { capture: true });
+    document.addEventListener("visibilitychange", handleVisibilityChange, { capture: true });
 
     return () => {
       window.removeEventListener("contextmenu", handleContextMenu, { capture: true } as any);
       window.removeEventListener("dragstart", handleDragStart, { capture: true } as any);
       window.removeEventListener("keydown", handleKeyDown, { capture: true } as any);
       window.removeEventListener("keyup", handleKeyUp, { capture: true } as any);
-      window.removeEventListener("blur", handleWindowBlur);
-      window.removeEventListener("focus", handleWindowFocus);
+      window.removeEventListener("blur", handleWindowBlur, { capture: true } as any);
+      document.removeEventListener("visibilitychange", handleVisibilityChange, { capture: true } as any);
       if (typeof document !== "undefined") {
-        document.body.classList.remove("capture-shield-active");
+        document.documentElement.classList.remove("privacy-blackout");
+        document.body.classList.remove("privacy-blackout");
       }
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       if (blackoutTimeoutRef.current) clearTimeout(blackoutTimeoutRef.current);
     };
   }, [isAdmin, disableRightClick, disableMediaSave, triggerAntiCaptureVeil, showSecurityToast]);
+
 
 
   if (isAdmin) return null;

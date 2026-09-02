@@ -265,6 +265,17 @@ body.capture-shield-active canvas {
   transition: none !important;
 }
 
+/* Privacy Blackout: Instantly turns entire viewport black on Win+PrtScn, Snipping Tool, or Phone Capture */
+html.privacy-blackout main,
+html.privacy-blackout body > *:not([data-privacy-veil]),
+body.privacy-blackout main {
+  filter: brightness(0) contrast(0) !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  transition: none !important;
+}
+
+
 
 
 
