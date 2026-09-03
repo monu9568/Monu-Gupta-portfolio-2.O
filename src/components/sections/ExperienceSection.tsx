@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Briefcase, Award, CheckCircle2, X, ExternalLink, Eye, Sparkles, ChevronDown, MapPin, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+import { Briefcase, Award, CheckCircle2, X, ExternalLink, Eye, Sparkles, ChevronDown, MapPin, ZoomIn, ZoomOut, RotateCcw, ShieldCheck } from "lucide-react";
 import GlassCard from "../ui/GlassCard";
 import SmartMedia from "../ui/SmartMedia";
 import { ExperienceData } from "@/lib/types";
@@ -16,6 +16,8 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
   const [showAll, setShowAll] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
   const [expandedCardIds, setExpandedCardIds] = useState<Record<string, boolean>>({});
+  const [isTouchShieldActive, setIsTouchShieldActive] = useState(false);
+  const [isHoldingTouch, setIsHoldingTouch] = useState(false);
 
   const toggleExpand = (id: string) => {
     setExpandedCardIds((prev) => ({
@@ -24,11 +26,12 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
     }));
   };
 
-
   useEffect(() => {
     if (selectedCertificate) {
       document.body.style.overflow = "hidden";
       setZoomScale(1);
+      setIsHoldingTouch(false);
+
 
       const handleKeyDown = (e: KeyboardEvent) => {
         if (e.key === "Escape") setSelectedCertificate(null);
@@ -300,6 +303,20 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                 </div>
 
                 <div className="flex items-center gap-2">
+                  {/* Anti-Recording Privacy Lens Toggle */}
+                  <button
+                    onClick={() => setIsTouchShieldActive((prev) => !prev)}
+                    className={`px-2.5 py-1.5 rounded-xl border text-[11px] font-mono flex items-center gap-1.5 transition-all ${
+                      isTouchShieldActive
+                        ? "bg-cyan-500/20 border-cyan-400/40 text-cyan-300 shadow-glow-accent"
+                        : "bg-white/[0.04] border-white/10 text-slate-400 hover:text-white"
+                    }`}
+                    title="Toggle Anti-Recording Security Lens"
+                  >
+                    <ShieldCheck className="h-3.5 w-3.5 text-cyan-400" />
+                    <span className="hidden sm:inline">{isTouchShieldActive ? "Privacy Lens ON" : "Privacy Lens"}</span>
+                  </button>
+
                   {/* Interactive Zoom Controls */}
                   <div className="flex items-center bg-white/[0.04] border border-white/10 rounded-xl p-1 gap-1">
                     <button
@@ -347,7 +364,32 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                 data-lenis-prevent="true"
                 className="relative flex-1 min-h-[380px] sm:min-h-[560px] max-h-[72vh] w-full rounded-2xl overflow-y-auto overscroll-contain bg-black/90 border border-white/10 p-2 sm:p-4 select-none custom-modal-scroll"
               >
+                {/* Hold-to-View Interactive Security Lens Veil */}
+                {isTouchShieldActive && !isHoldingTouch && (
+                  <div
+                    onTouchStart={() => setIsHoldingTouch(true)}
+                    onMouseDown={() => setIsHoldingTouch(true)}
+                    className="absolute inset-0 z-40 bg-slate-950/90 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center select-none cursor-pointer rounded-2xl transition-opacity duration-150"
+                  >
+                    <div className="h-14 w-14 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 mb-3 shadow-glow-accent animate-pulse">
+                      <ShieldCheck className="h-7 w-7" />
+                    </div>
+                    <p className="text-sm font-mono font-bold text-white tracking-wider uppercase">
+                      Digital Rights Protected
+                    </p>
+                    <p className="text-xs font-mono text-cyan-300 mt-1">
+                      Touch & Hold Screen to Reveal Credential
+                    </p>
+                    <p className="text-[11px] text-slate-500 mt-2 max-w-xs font-light">
+                      Screen recording & unauthorized extraction are restricted.
+                    </p>
+                  </div>
+                )}
+
                 <div
+                  onTouchEnd={() => setIsHoldingTouch(false)}
+                  onTouchCancel={() => setIsHoldingTouch(false)}
+                  onMouseUp={() => setIsHoldingTouch(false)}
                   style={{
                     transform: `scale(${zoomScale})`,
                     transformOrigin: "top center",
@@ -364,6 +406,7 @@ export default function ExperienceSection({ experience }: ExperienceSectionProps
                   />
                 </div>
               </div>
+
 
 
               <div className="pt-4 mt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 flex-shrink-0">

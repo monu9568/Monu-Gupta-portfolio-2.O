@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Image from "next/image";
 import { Film, FileText, Image as ImageIcon, ExternalLink, Download } from "lucide-react";
 
+import PdfCanvasViewer from "./PdfCanvasViewer";
+
 interface SmartMediaProps {
   src?: string | null;
   alt: string;
@@ -28,7 +30,7 @@ const videoCache = new Set<string>();
 export default function SmartMedia({
   src,
   alt,
-  className = "w-full h-full object-cover",
+  className = "",
   fill = false,
   priority = false,
   sizes,
@@ -39,30 +41,28 @@ export default function SmartMedia({
   playsInline = true,
   poster,
   onClick,
-  showBadge = false,
+  showBadge = true,
   isFullView = false,
 }: SmartMediaProps) {
   const [error, setError] = useState(false);
-  const [isVideoReady, setIsVideoReady] = useState(() => Boolean(src && videoCache.has(src)));
+  const [isVideoReady, setIsVideoReady] = useState(false);
 
   if (!src || error) {
     return (
       <div
-        onClick={onClick}
-        className={`flex flex-col items-center justify-center bg-slate-900/80 text-slate-400 border border-white/10 ${
-          fill ? "absolute inset-0 w-full h-full" : "w-full h-full min-h-[140px]"
+        className={`flex flex-col items-center justify-center p-4 text-center bg-white/[0.02] border border-white/5 select-none ${
+          fill ? "absolute inset-0 w-full h-full" : "w-full h-full min-h-[160px]"
         }`}
       >
-        <ImageIcon className="h-7 w-7 stroke-1 mb-1 text-slate-500" />
-        <span className="text-[11px] font-mono text-center px-2">{alt || "No Media"}</span>
+        <ImageIcon className="h-6 w-6 text-slate-500 mb-2 opacity-50" />
+        <span className="text-xs text-slate-400 font-mono font-light">Asset Unavailable</span>
       </div>
     );
   }
 
   const isPdf = Boolean(
     src.toLowerCase().endsWith(".pdf") ||
-      src.includes(".pdf?") ||
-      src.includes("/pdf/") ||
+      src.toLowerCase().includes(".pdf?") ||
       src.startsWith("data:application/pdf")
   );
 
@@ -74,6 +74,24 @@ export default function SmartMedia({
 
   // --- FULL VIEW / CERTIFICATE MODAL RENDERING (Images & PDFs with Complete Digital Rights Lockdown) ---
   if (isFullView) {
+    if (isPdf) {
+      return (
+        <div className="relative flex flex-col w-full h-full select-none">
+          <PdfCanvasViewer src={src} alt={alt} />
+          <div className="pt-3 flex items-center justify-between flex-shrink-0">
+            <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
+              <FileText className="h-4 w-4 text-cyan-400" />
+              <span>Verified Credential: {alt}</span>
+            </span>
+
+            <span className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 select-none">
+              🔒 In-Browser Vector Protected
+            </span>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         onClick={onClick}
@@ -92,21 +110,13 @@ export default function SmartMedia({
           }}
           className="relative w-full rounded-xl overflow-hidden bg-slate-950 border border-white/15 flex items-center justify-center p-2"
         >
-          {isPdf ? (
-            <iframe
-              src={`${src}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-              title={alt}
-              className="w-full h-full min-h-[620px] sm:min-h-[820px] border-0 select-none"
-            />
-          ) : (
-            <img
-              src={src}
-              alt={alt}
-              draggable={false}
-              onContextMenu={(e) => e.preventDefault()}
-              className="w-full h-auto max-h-[82vh] object-contain rounded-lg select-none pointer-events-auto"
-            />
-          )}
+          <img
+            src={src}
+            alt={alt}
+            draggable={false}
+            onContextMenu={(e) => e.preventDefault()}
+            className="w-full h-auto max-h-[82vh] object-contain rounded-lg select-none pointer-events-auto"
+          />
 
           {/* Authenticated Holographic Overlay Watermark */}
           <div
