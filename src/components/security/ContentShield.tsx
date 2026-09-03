@@ -117,19 +117,8 @@ export default function ContentShield({ settings }: ContentShieldProps) {
         showSecurityToast("Printing is restricted.");
         return false;
       }
-
-      // Smartphone Hardware Volume button screenshot attempt interception
-      if (
-        e.key === "AudioVolumeDown" ||
-        e.key === "AudioVolumeUp" ||
-        e.code === "AudioVolumeDown" ||
-        e.code === "AudioVolumeUp" ||
-        e.key === "VolumeDown" ||
-        e.key === "VolumeUp"
-      ) {
-        triggerAntiCaptureVeil();
-      }
     };
+
 
 
     const handleKeyUp = (e: KeyboardEvent) => {

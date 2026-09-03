@@ -182,7 +182,7 @@ export default function PersonalCube({
     const desiredX = targetRotation.current.x + gyroOffset.current.x + autoFloatX;
 
     // Instant finger tracking when dragging (0.28) vs smooth momentum on release (0.1)
-    const lerpFactor = isDragging.current ? 0.28 : (isMobile ? 0.1 : 0.05);
+    const lerpFactor = isDragging.current ? 0.21 : (isMobile ? 0.1 : 0.05);
     currentRotation.current.x += (desiredX - currentRotation.current.x) * lerpFactor;
     currentRotation.current.y += (desiredY - currentRotation.current.y) * lerpFactor;
 
