@@ -194,10 +194,11 @@ export default function PersonalCube({
   });
 
 
-  const cubeSize = isMobile ? 1.6 : 1.9;
+  const cubeSize = isMobile ? 1.35 : 1.9;
 
   return (
-    <group ref={groupRef} position={[0.2, 0, 0]}>
+    <group ref={groupRef} position={isMobile ? [0, 0, 0] : [0.2, 0, 0]}>
+
       {/* Inner Image Cube with Monu Gupta's Full Uncut Portraits */}
       <mesh ref={innerCubeRef} material={materials}>
         <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
