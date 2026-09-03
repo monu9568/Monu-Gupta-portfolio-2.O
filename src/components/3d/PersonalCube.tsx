@@ -78,11 +78,11 @@ export default function PersonalCube({
             const next = [...prev];
             next[index] = new THREE.MeshStandardMaterial({
               map: tex,
-              roughness: 0.12,
-              metalness: 0.05,
-              color: new THREE.Color("#fffbf5"),
-              emissive: new THREE.Color("#d97706"),
-              emissiveIntensity: 0.16,
+              roughness: 0.1,
+              metalness: 0.0,
+              color: new THREE.Color("#ffffff"),
+              emissive: new THREE.Color("#ffffff"),
+              emissiveIntensity: 0.08,
             });
             return next;
           });
@@ -201,10 +201,10 @@ export default function PersonalCube({
         <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
       </mesh>
 
-      {/* Floating Glowing Core Edges - Warm Amber Golden Contour */}
+      {/* Floating Glowing Core Edges - Sleek High-Contrast Cyan/White Glass Contour */}
       <lineSegments>
         <edgesGeometry args={[new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)]} />
-        <lineBasicMaterial color="#f59e0b" transparent opacity={0.85} linewidth={1.5} />
+        <lineBasicMaterial color="#38bdf8" transparent opacity={0.65} linewidth={1.5} />
       </lineSegments>
 
       {/* Outer Rounded Crystal Optical Glass Shell */}
@@ -217,40 +217,41 @@ export default function PersonalCube({
         {isMobile ? (
           <meshStandardMaterial
             transparent
-            opacity={0.35}
+            opacity={0.25}
             roughness={0.08}
-            metalness={0.15}
-            color={new THREE.Color("#fef3c7")}
-            emissive={new THREE.Color("#d97706")}
-            emissiveIntensity={0.2}
+            metalness={0.2}
+            color={new THREE.Color("#e0f2fe")}
+            emissive={new THREE.Color("#0284c7")}
+            emissiveIntensity={0.08}
           />
         ) : (
           <meshPhysicalMaterial
             transparent
-            transmission={0.92}
+            transmission={0.94}
             opacity={1}
-            roughness={0.03}
-            ior={1.18}
-            thickness={0.25}
+            roughness={0.02}
+            ior={1.15}
+            thickness={0.2}
             specularIntensity={1.0}
-            specularColor={new THREE.Color("#fef08a")}
-            color={new THREE.Color("#fffbeb")}
-            attenuationColor={new THREE.Color("#f59e0b")}
-            attenuationDistance={2.8}
+            specularColor={new THREE.Color("#ffffff")}
+            color={new THREE.Color("#f0f9ff")}
+            attenuationColor={new THREE.Color("#38bdf8")}
+            attenuationDistance={3.5}
           />
         )}
       </RoundedBox>
 
-      {/* Outer Specular Prism Orbit Wireframe - Warm Golden Halo */}
+      {/* Outer Specular Prism Orbit Wireframe */}
       <mesh>
         <octahedronGeometry args={[cubeSize * 1.08, 2]} />
         <meshBasicMaterial
-          color="#fbbf24"
+          color="#38bdf8"
           wireframe
           transparent
-          opacity={0.15}
+          opacity={0.08}
         />
       </mesh>
     </group>
   );
+
 }

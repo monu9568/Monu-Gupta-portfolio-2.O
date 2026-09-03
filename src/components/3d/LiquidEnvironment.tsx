@@ -62,17 +62,17 @@ export default function LiquidEnvironment({ isMobile = false }: LiquidEnvironmen
 
   return (
     <>
-      <ambientLight intensity={1.1} />
-      <directionalLight position={[3, 6, 6]} intensity={2.2} color="#fffbeb" />
-      <directionalLight position={[-4, -3, -2]} intensity={1.4} color="#f59e0b" />
-      <directionalLight position={[0, 4, -4]} intensity={1.0} color="#d97706" />
+      <ambientLight intensity={0.65} />
+      <directionalLight position={[3, 6, 6]} intensity={1.4} color="#ffffff" />
+      <directionalLight position={[-4, -3, -2]} intensity={0.7} color="#38bdf8" />
+      <directionalLight position={[0, 4, -4]} intensity={0.5} color="#818cf8" />
 
-      {/* Orbiting Volumetric Studio Point Lights - Warm Amber & Golden Candlelight */}
-      <pointLight ref={lightRef1} intensity={3.6} distance={14} color="#fbbf24" />
-      <pointLight ref={lightRef2} intensity={3.0} distance={15} color="#f59e0b" />
-      <pointLight ref={lightRef3} intensity={2.2} distance={10} color="#fed7aa" />
+      {/* Orbiting Volumetric Studio Point Lights - Clean High-Contrast Glass Lighting */}
+      <pointLight ref={lightRef1} intensity={2.2} distance={12} color="#38bdf8" />
+      <pointLight ref={lightRef2} intensity={1.8} distance={14} color="#818cf8" />
+      <pointLight ref={lightRef3} intensity={1.4} distance={10} color="#ffffff" />
 
-      {/* Floating Refractive Particle Cloud - Golden Amber Embers */}
+      {/* Floating Refractive Particle Cloud */}
       <points ref={particlesRef}>
         <bufferGeometry>
           <bufferAttribute
@@ -84,14 +84,15 @@ export default function LiquidEnvironment({ isMobile = false }: LiquidEnvironmen
         </bufferGeometry>
         <pointsMaterial
           size={isMobile ? 0.05 : 0.08}
-          color="#fbbf24"
+          color="#93c5fd"
           transparent
-          opacity={0.6}
+          opacity={0.35}
           blending={THREE.AdditiveBlending}
           sizeAttenuation
         />
       </points>
     </>
+
 
   );
 }
