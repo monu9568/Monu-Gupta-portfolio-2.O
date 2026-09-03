@@ -78,11 +78,11 @@ export default function PersonalCube({
             const next = [...prev];
             next[index] = new THREE.MeshStandardMaterial({
               map: tex,
-              roughness: 0.1,
-              metalness: 0.0,
-              color: new THREE.Color("#ffffff"),
-              emissive: new THREE.Color("#ffffff"),
-              emissiveIntensity: 0.12,
+              roughness: 0.12,
+              metalness: 0.05,
+              color: new THREE.Color("#fffbf5"),
+              emissive: new THREE.Color("#d97706"),
+              emissiveIntensity: 0.16,
             });
             return next;
           });
@@ -145,10 +145,7 @@ export default function PersonalCube({
     window.addEventListener("touchstart", handleTouchStart, { passive: true });
     window.addEventListener("touchmove", handleTouchMove, { passive: true });
     window.addEventListener("touchend", handleTouchEnd, { passive: true });
-
-    if (typeof window !== "undefined" && "DeviceOrientationEvent" in window) {
-      window.addEventListener("deviceorientation", handleDeviceOrientation, { passive: true });
-    }
+    window.addEventListener("deviceorientation", handleDeviceOrientation, { passive: true });
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
@@ -159,14 +156,14 @@ export default function PersonalCube({
     };
   }, [isMobile]);
 
-  // Frame Render Loop with Smooth Spring Physics
-  useFrame((state, delta) => {
+  // 60FPS Physics Simulation & Smooth Momentum Inertia Loop
+  useFrame((state) => {
     if (!groupRef.current) return;
 
     const time = state.clock.getElapsedTime();
 
-    // Constant slow luxury floating orbit
-    const autoFloatY = isMobile ? time * 0.12 : Math.sin(time * 0.4) * 0.06;
+    // Natural ambient floating oscillation
+    const autoFloatY = Math.sin(time * 0.45) * 0.06;
     const autoFloatX = Math.cos(time * 0.35) * 0.04;
 
     // Apply finger flick momentum glide when not dragging
@@ -181,7 +178,7 @@ export default function PersonalCube({
     const desiredY = targetRotation.current.y + gyroOffset.current.y + autoFloatY;
     const desiredX = targetRotation.current.x + gyroOffset.current.x + autoFloatX;
 
-    // Instant finger tracking when dragging (0.28) vs smooth momentum on release (0.1)
+    // Instant finger tracking when dragging (0.21) vs smooth momentum on release (0.1)
     const lerpFactor = isDragging.current ? 0.21 : (isMobile ? 0.1 : 0.05);
     currentRotation.current.x += (desiredX - currentRotation.current.x) * lerpFactor;
     currentRotation.current.y += (desiredY - currentRotation.current.y) * lerpFactor;
@@ -204,10 +201,10 @@ export default function PersonalCube({
         <boxGeometry args={[cubeSize, cubeSize, cubeSize]} />
       </mesh>
 
-      {/* Floating Glowing Core Edges - Perfect contour on the cube perimeter */}
+      {/* Floating Glowing Core Edges - Warm Amber Golden Contour */}
       <lineSegments>
         <edgesGeometry args={[new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)]} />
-        <lineBasicMaterial color="#38bdf8" transparent opacity={0.8} linewidth={1.5} />
+        <lineBasicMaterial color="#f59e0b" transparent opacity={0.85} linewidth={1.5} />
       </lineSegments>
 
       {/* Outer Rounded Crystal Optical Glass Shell */}
@@ -221,11 +218,11 @@ export default function PersonalCube({
           <meshStandardMaterial
             transparent
             opacity={0.35}
-            roughness={0.1}
+            roughness={0.08}
             metalness={0.15}
-            color={new THREE.Color("#e0f2fe")}
-            emissive={new THREE.Color("#0284c7")}
-            emissiveIntensity={0.15}
+            color={new THREE.Color("#fef3c7")}
+            emissive={new THREE.Color("#d97706")}
+            emissiveIntensity={0.2}
           />
         ) : (
           <meshPhysicalMaterial
@@ -233,25 +230,25 @@ export default function PersonalCube({
             transmission={0.92}
             opacity={1}
             roughness={0.03}
-            ior={1.15}
-            thickness={0.2}
+            ior={1.18}
+            thickness={0.25}
             specularIntensity={1.0}
-            specularColor={new THREE.Color("#ffffff")}
-            color={new THREE.Color("#f0f9ff")}
-            attenuationColor={new THREE.Color("#38bdf8")}
-            attenuationDistance={3.0}
+            specularColor={new THREE.Color("#fef08a")}
+            color={new THREE.Color("#fffbeb")}
+            attenuationColor={new THREE.Color("#f59e0b")}
+            attenuationDistance={2.8}
           />
         )}
       </RoundedBox>
 
-      {/* Outer Specular Prism Orbit Wireframe */}
+      {/* Outer Specular Prism Orbit Wireframe - Warm Golden Halo */}
       <mesh>
         <octahedronGeometry args={[cubeSize * 1.08, 2]} />
         <meshBasicMaterial
-          color="#38bdf8"
+          color="#fbbf24"
           wireframe
           transparent
-          opacity={0.12}
+          opacity={0.15}
         />
       </mesh>
     </group>
