@@ -1,9 +1,14 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
+import { put } from "@vercel/blob";
 import { FullPortfolioData, HeroData, ProjectData, SkillData, ExperienceData, AboutData, MessageData, SiteSettingsData } from "./types";
 import { defaultPortfolioData } from "./defaultData";
 import { hashPassword } from "./auth";
+
+const BLOB_TOKEN =
+  process.env.BLOB_READ_WRITE_TOKEN ||
+  "vercel_blob_rw_WOcKtcD4V9eOVLjZ_R2ISZzTvebeG7nthMXsiT6LfOKw5CP";
 
 const IS_SERVERLESS = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === "production");
 
@@ -43,10 +48,21 @@ function ensureDataDir() {
   }
 }
 
-export function getPortfolioData(): FullPortfolioData {
-  if (memoryPortfolioData) {
-    return memoryPortfolioData;
+// Global Cloud Sync via Vercel Blob Storage
+export async function syncToCloudStorage(data: FullPortfolioData): Promise<void> {
+  if (!BLOB_TOKEN) return;
+  try {
+    await put("portfolio_database/portfolio.json", JSON.stringify(data, null, 2), {
+      access: "public",
+      addRandomSuffix: false,
+      token: BLOB_TOKEN,
+    });
+  } catch (err) {
+    console.warn("Vercel Blob cloud sync notice:", err);
   }
+}
+
+export function getPortfolioData(): FullPortfolioData {
   ensureDataDir();
   try {
     if (fs.existsSync(DATA_FILE)) {
@@ -76,8 +92,36 @@ export function getPortfolioData(): FullPortfolioData {
   } catch (err) {
     console.error("Error reading portfolio data:", err);
   }
+  if (memoryPortfolioData) return memoryPortfolioData;
   memoryPortfolioData = defaultPortfolioData;
   return memoryPortfolioData;
+}
+
+export async function getPortfolioDataFresh(): Promise<FullPortfolioData> {
+  if (IS_SERVERLESS && BLOB_TOKEN) {
+    try {
+      const blobUrl = `https://wocktcd4v9eovljz.public.blob.vercel-storage.com/portfolio_database/portfolio.json?t=${Date.now()}`;
+      const res = await fetch(blobUrl, { cache: "no-store" });
+      if (res.ok) {
+        const cloudData = await res.json();
+        if (cloudData && cloudData.hero) {
+          memoryPortfolioData = {
+            ...defaultPortfolioData,
+            ...cloudData,
+            hero: { ...defaultPortfolioData.hero, ...cloudData.hero },
+            about: { ...defaultPortfolioData.about, ...cloudData.about },
+            settings: { ...defaultPortfolioData.settings, ...cloudData.settings },
+          };
+          try {
+            ensureDataDir();
+            fs.writeFileSync(DATA_FILE, JSON.stringify(memoryPortfolioData, null, 2), "utf-8");
+          } catch {}
+          return memoryPortfolioData!;
+        }
+      }
+    } catch {}
+  }
+  return getPortfolioData();
 }
 
 export function savePortfolioData(data: FullPortfolioData): void {
@@ -85,10 +129,17 @@ export function savePortfolioData(data: FullPortfolioData): void {
   ensureDataDir();
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+    if (!IS_SERVERLESS && fs.existsSync(SEED_DATA_FILE)) {
+      fs.writeFileSync(SEED_DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+    }
   } catch (err) {
     console.warn("Filesystem write fallback, retained in memory:", err);
   }
+
+  // Trigger cloud sync to Vercel Blob
+  syncToCloudStorage(data).catch(() => {});
 }
+
 
 export function updateHero(hero: Partial<HeroData>): HeroData {
   const current = getPortfolioData();

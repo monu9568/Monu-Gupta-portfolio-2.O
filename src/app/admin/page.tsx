@@ -99,15 +99,30 @@ export default function AdminPage() {
     checkAuth();
   }, []);
 
+  const notifyFrontendSync = () => {
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        const channel = new BroadcastChannel("portfolio_cms_updates");
+        channel.postMessage({ type: "cms_updated", timestamp: Date.now() });
+        channel.close();
+      }
+    } catch {}
+  };
+
   const fetchPortfolioData = async () => {
     try {
-      const res = await fetch("/api/portfolio");
+      const res = await fetch(`/api/portfolio?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Cache-Control": "no-cache" },
+      });
       const json = await res.json();
       setData(json);
+      notifyFrontendSync();
     } catch (err) {
       console.error("Failed to load portfolio data in CMS", err);
     }
   };
+
 
   const handleLogout = async () => {
     if (typeof window !== "undefined") {
