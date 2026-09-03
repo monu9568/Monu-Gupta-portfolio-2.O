@@ -33,6 +33,7 @@ export default function PersonalCube({
   const currentRotation = useRef({ x: 0.1, y: 0.2 });
   const touchStart = useRef({ x: 0, y: 0 });
   const isDragging = useRef(false);
+  const touchVelocity = useRef({ x: 0, y: 0 });
   const gyroOffset = useRef({ x: 0, y: 0 });
 
   // Initial instant default materials (0ms load time)
@@ -113,6 +114,7 @@ export default function PersonalCube({
       if (e.touches.length === 1) {
         isDragging.current = true;
         touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        touchVelocity.current = { x: 0, y: 0 };
       }
     };
 
@@ -122,8 +124,10 @@ export default function PersonalCube({
       const deltaY = e.touches[0].clientY - touchStart.current.y;
       touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
 
-      targetRotation.current.y += deltaX * 0.008;
-      targetRotation.current.x += deltaY * 0.008;
+      const sensitivity = isMobile ? 0.022 : 0.009;
+      targetRotation.current.y += deltaX * sensitivity;
+      targetRotation.current.x += deltaY * sensitivity;
+      touchVelocity.current = { x: deltaX * sensitivity * 0.8, y: deltaY * sensitivity * 0.8 };
     };
 
     const handleTouchEnd = () => {
@@ -165,11 +169,20 @@ export default function PersonalCube({
     const autoFloatY = isMobile ? time * 0.12 : Math.sin(time * 0.4) * 0.06;
     const autoFloatX = Math.cos(time * 0.35) * 0.04;
 
+    // Apply finger flick momentum glide when not dragging
+    if (!isDragging.current && isMobile) {
+      targetRotation.current.y += touchVelocity.current.x;
+      targetRotation.current.x += touchVelocity.current.y;
+      touchVelocity.current.x *= 0.93;
+      touchVelocity.current.y *= 0.93;
+    }
+
     // Smooth lerp damping towards target + gyro + float
     const desiredY = targetRotation.current.y + gyroOffset.current.y + autoFloatY;
     const desiredX = targetRotation.current.x + gyroOffset.current.x + autoFloatX;
 
-    const lerpFactor = isMobile ? 0.08 : 0.05;
+    // Instant finger tracking when dragging (0.28) vs smooth momentum on release (0.1)
+    const lerpFactor = isDragging.current ? 0.28 : (isMobile ? 0.1 : 0.05);
     currentRotation.current.x += (desiredX - currentRotation.current.x) * lerpFactor;
     currentRotation.current.y += (desiredY - currentRotation.current.y) * lerpFactor;
 
@@ -179,6 +192,7 @@ export default function PersonalCube({
     // Gentle physical vertical breathing motion perfectly centered
     groupRef.current.position.y = Math.sin(time * 1.2) * 0.05;
   });
+
 
   const cubeSize = isMobile ? 1.6 : 1.9;
 

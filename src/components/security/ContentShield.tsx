@@ -117,7 +117,20 @@ export default function ContentShield({ settings }: ContentShieldProps) {
         showSecurityToast("Printing is restricted.");
         return false;
       }
+
+      // Smartphone Hardware Volume button screenshot attempt interception
+      if (
+        e.key === "AudioVolumeDown" ||
+        e.key === "AudioVolumeUp" ||
+        e.code === "AudioVolumeDown" ||
+        e.code === "AudioVolumeUp" ||
+        e.key === "VolumeDown" ||
+        e.key === "VolumeUp"
+      ) {
+        triggerAntiCaptureVeil();
+      }
     };
+
 
     const handleKeyUp = (e: KeyboardEvent) => {
       if (e.key === "PrintScreen" || e.code === "PrintScreen" || e.keyCode === 44 || e.which === 44 || e.key === "Meta") {
@@ -125,7 +138,20 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       }
     };
 
-    // 4. Smartphone Screenshot & Tab Backgrounding Defense
+    // 4. Smartphone 3-Finger Swipe Screenshot Interception
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches && e.touches.length >= 3) {
+        triggerAntiCaptureVeil();
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches && e.touches.length >= 3) {
+        triggerAntiCaptureVeil();
+      }
+    };
+
+    // 5. Smartphone Screenshot & Tab Backgrounding Defense
     const handleVisibilityChange = () => {
       if (document.hidden || document.visibilityState === "hidden") {
         triggerAntiCaptureVeil();
@@ -136,6 +162,8 @@ export default function ContentShield({ settings }: ContentShieldProps) {
     window.addEventListener("dragstart", handleDragStart, { capture: true });
     window.addEventListener("keydown", handleKeyDown, { capture: true });
     window.addEventListener("keyup", handleKeyUp, { capture: true });
+    window.addEventListener("touchstart", handleTouchStart, { capture: true, passive: true });
+    window.addEventListener("touchmove", handleTouchMove, { capture: true, passive: true });
     document.addEventListener("visibilitychange", handleVisibilityChange, { capture: true });
 
     return () => {
@@ -143,6 +171,8 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       window.removeEventListener("dragstart", handleDragStart, { capture: true } as any);
       window.removeEventListener("keydown", handleKeyDown, { capture: true } as any);
       window.removeEventListener("keyup", handleKeyUp, { capture: true } as any);
+      window.removeEventListener("touchstart", handleTouchStart, { capture: true } as any);
+      window.removeEventListener("touchmove", handleTouchMove, { capture: true } as any);
       document.removeEventListener("visibilitychange", handleVisibilityChange, { capture: true } as any);
       if (typeof document !== "undefined") {
         document.documentElement.classList.remove("privacy-blackout");
@@ -151,6 +181,7 @@ export default function ContentShield({ settings }: ContentShieldProps) {
       if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
       if (blackoutTimeoutRef.current) clearTimeout(blackoutTimeoutRef.current);
     };
+
 
   }, [isAdmin, disableRightClick, disableMediaSave, triggerAntiCaptureVeil, showSecurityToast]);
 

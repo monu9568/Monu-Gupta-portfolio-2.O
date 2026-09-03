@@ -23,6 +23,8 @@ export default function GlassCard({
   const [tiltStyle, setTiltStyle] = useState<{ transform: string }>({ transform: "perspective(1000px) rotateX(0deg) rotateY(0deg)" });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Only execute 3D tilt calculations on desktop mouse environments to preserve 120fps mobile scroll
+    if (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches) return;
     if (!cardRef.current) return;
     const rect = cardRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
@@ -39,6 +41,7 @@ export default function GlassCard({
       });
     }
   };
+
 
   const handleMouseLeave = () => {
     setMousePos((prev) => ({ ...prev, active: false }));

@@ -137,18 +137,19 @@ export default function ProjectsSection({ projects }: ProjectsSectionProps) {
                   onClick={() => setSelectedProject(project)}
                 >
                   <div>
-                    {/* Card Media Preview */}
-                    <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-black/40 mb-6">
+                    {/* Card Media Preview (pointer-events-none allows 100% native smooth touch scrolling across cards) */}
+                    <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-white/10 bg-black/40 mb-6 pointer-events-none">
                       <SmartMedia
                         src={project.thumbnail}
                         alt={project.title}
                         fill
                         showBadge
                         poster={(project.gallery || []).find((g) => g && !g.match(/\.(mp4|webm|mov)$/i)) || "/images/personal/cube-studio.webp"}
-                        className="object-cover transition-transform duration-700 group-hover:scale-105"
+                        className="object-cover transition-transform duration-700 group-hover:scale-105 pointer-events-none"
                         sizes="(max-width: 768px) 100vw, 440px"
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
+
 
                       {/* Top Floating Badges */}
                       <div className="absolute top-3 left-3 flex items-center gap-2">

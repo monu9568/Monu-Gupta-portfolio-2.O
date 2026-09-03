@@ -72,73 +72,85 @@ export default function SmartMedia({
       src.startsWith("data:video/")
   );
 
-  // --- PDF RENDERING (Protected Embedded Viewer with Complete Right-Click Lockdown) ---
-  if (isPdf) {
-    if (isFullView || controls) {
-      return (
+  // --- FULL VIEW / CERTIFICATE MODAL RENDERING (Images & PDFs with Complete Digital Rights Lockdown) ---
+  if (isFullView) {
+    return (
+      <div
+        onClick={onClick}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }}
+        className="relative flex flex-col w-full h-full select-none"
+      >
         <div
-          onClick={onClick}
           onContextMenu={(e) => {
             e.preventDefault();
             e.stopPropagation();
             return false;
           }}
-          className={`relative flex flex-col w-full h-full select-none ${fill ? "absolute inset-0" : "min-h-[480px]"}`}
+          className="relative w-full rounded-xl overflow-hidden bg-slate-950 border border-white/15 flex items-center justify-center p-2"
         >
+          {isPdf ? (
+            <iframe
+              src={`${src}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
+              title={alt}
+              className="w-full h-full min-h-[620px] sm:min-h-[820px] border-0 select-none"
+            />
+          ) : (
+            <img
+              src={src}
+              alt={alt}
+              draggable={false}
+              onContextMenu={(e) => e.preventDefault()}
+              className="w-full h-auto max-h-[82vh] object-contain rounded-lg select-none pointer-events-auto"
+            />
+          )}
+
+          {/* Authenticated Holographic Overlay Watermark */}
+          <div
+            aria-hidden="true"
+            className="absolute inset-0 z-10 pointer-events-none select-none flex items-center justify-center opacity-[0.06] overflow-hidden"
+          >
+            <div className="text-white text-base sm:text-2xl font-mono font-black tracking-widest -rotate-25 whitespace-nowrap uppercase select-none pointer-events-none">
+              © MONU GUPTA • VERIFIED CREDENTIAL • UNAUTHORIZED REPRODUCTION PROHIBITED
+            </div>
+          </div>
+
+          {/* Top Transparent Click & Context Shield: blocks right-click, Save As, while forwarding wheel scroll */}
           <div
             onContextMenu={(e) => {
               e.preventDefault();
               e.stopPropagation();
               return false;
             }}
-            className="relative w-full h-[620px] sm:h-[820px] rounded-xl overflow-hidden bg-slate-950 border border-white/15"
-          >
-            <iframe
-              src={`${src}#toolbar=0&navpanes=0&scrollbar=1&view=FitH`}
-              title={alt}
-              className="w-full h-full min-h-[620px] sm:min-h-[820px] border-0 select-none"
-            />
-
-            {/* Authenticated Holographic Overlay Watermark */}
-            <div
-              aria-hidden="true"
-              className="absolute inset-0 z-10 pointer-events-none select-none flex items-center justify-center opacity-[0.055] overflow-hidden"
-            >
-              <div className="text-white text-base sm:text-xl font-mono font-black tracking-widest -rotate-25 whitespace-nowrap uppercase select-none pointer-events-none">
-                © MONU GUPTA • VERIFIED CREDENTIAL • UNAUTHORIZED REPRODUCTION PROHIBITED
-              </div>
-            </div>
-            {/* Top Transparent Click & Context Shield: blocks right-click, Save As, while forwarding wheel scroll */}
-            <div
-              onContextMenu={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-              }}
-              onWheel={(e) => {
-                const container = e.currentTarget.closest('[data-lenis-prevent="true"]') as HTMLElement | null;
-                if (container) {
-                  container.scrollTop += e.deltaY;
-                }
-              }}
-              className="absolute inset-0 z-20 pointer-events-auto bg-transparent select-none cursor-default"
-            />
-          </div>
-          <div className="pt-3 flex items-center justify-between">
-            <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
-              <FileText className="h-4 w-4 text-cyan-400" />
-              <span>Verified Credential: {alt}</span>
-            </span>
-
-            <span className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 select-none">
-              🔒 Protected Digital Credential
-            </span>
-          </div>
+            onWheel={(e) => {
+              const container = e.currentTarget.closest('[data-lenis-prevent="true"]') as HTMLElement | null;
+              if (container) {
+                container.scrollTop += e.deltaY;
+              }
+            }}
+            className="absolute inset-0 z-20 pointer-events-auto bg-transparent select-none cursor-default"
+          />
         </div>
-      );
-    }
 
-    // Thumbnail / Preview for PDF
+        <div className="pt-3 flex items-center justify-between flex-shrink-0">
+          <span className="text-xs font-mono text-slate-400 flex items-center gap-1.5">
+            <FileText className="h-4 w-4 text-cyan-400" />
+            <span>Verified Credential: {alt}</span>
+          </span>
+
+          <span className="text-[11px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20 select-none">
+            🔒 Protected Digital Credential
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Thumbnail / Preview for PDF
+  if (isPdf) {
     return (
       <div
         onClick={onClick}
@@ -163,6 +175,7 @@ export default function SmartMedia({
       </div>
     );
   }
+
 
   // --- VIDEO RENDERING (Protected Player with Persistent Memory Caching) ---
   if (isVideo) {
@@ -189,13 +202,15 @@ export default function SmartMedia({
           </div>
         )}
 
+        {/* On mobile touch devices, optimize by showing poster and preloading none for grid cards to ensure 120fps native scroll */}
         <video
           key={src}
           poster={poster}
-          preload={isFullView || controls ? "auto" : "metadata"}
-          autoPlay={autoPlay}
+          preload={isFullView || controls ? "auto" : (typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches ? "none" : "metadata")}
+          autoPlay={typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches && !isFullView ? false : autoPlay}
           loop={loop}
           muted={muted}
+
           // @ts-ignore
           defaultMuted={muted}
           controls={controls}
