@@ -31,21 +31,21 @@ export default function HeroSection({ hero }: HeroSectionProps) {
   return (
     <section
       id="home"
-      className="relative min-h-[100dvh] lg:min-h-screen flex items-center justify-center pt-20 pb-4 sm:pt-24 sm:pb-16 px-4 md:px-8 lg:px-16 overflow-hidden"
+      className="relative min-h-[100dvh] lg:min-h-screen flex items-center justify-center pt-16 pb-4 sm:pt-24 sm:pb-16 px-4 md:px-8 lg:px-16 overflow-hidden"
     >
       {/* Background Liquid Ambient Glow Orbs */}
       <div className="liquid-glow-1 top-1/4 left-1/10 h-[500px] w-[500px]" />
       <div className="liquid-glow-2 bottom-1/4 right-1/10 h-[550px] w-[550px]" />
 
       {/* ========================================================================= */}
-      {/* MOBILE SINGLE-FRAME VIEW (lg:hidden) - Everything fits in 100vh viewport   */}
+      {/* MOBILE SINGLE-FRAME VIEW (lg:hidden) - Evenly distributed in 100vh frame   */}
       {/* ========================================================================= */}
-      <div className="flex lg:hidden flex-col justify-between items-center text-center w-full min-h-[calc(100dvh-5.5rem)] relative z-10 py-1 max-w-md mx-auto gap-2">
+      <div className="flex lg:hidden flex-col justify-evenly items-center text-center w-full min-h-[calc(100dvh-4.5rem)] relative z-10 py-1 max-w-md mx-auto gap-2.5">
         
-        {/* Top: Name + Skill Badges (Available line removed per directive) */}
+        {/* Top: Name + Skill Badges */}
         {hero.showIdentitySubtitle !== false && (
-          <div className="flex flex-col items-center gap-1 flex-shrink-0 pt-1">
-            <h2 className="text-xl font-bold tracking-tight text-white font-sans">
+          <div className="flex flex-col items-center gap-1.5 flex-shrink-0 pt-0.5">
+            <h2 className="text-2xl font-bold tracking-tight text-white font-sans">
               {hero.name || "Monu Gupta"}
             </h2>
             <div className="flex flex-wrap items-center justify-center gap-1.5">
@@ -54,7 +54,7 @@ export default function HeroSection({ hero }: HeroSectionProps) {
                 .map((item, idx) => (
                   <span
                     key={idx}
-                    className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/10 backdrop-blur-md text-[9.5px] font-mono text-cyan-300 shadow-sm"
+                    className="px-2.5 py-0.5 rounded-md bg-white/[0.04] border border-white/10 backdrop-blur-md text-[10px] font-mono text-cyan-300 shadow-sm"
                   >
                     {item.trim()}
                   </span>
@@ -63,14 +63,14 @@ export default function HeroSection({ hero }: HeroSectionProps) {
           </div>
         )}
 
-        {/* Center: 3D Personal Identity Cube Canvas (Compact size, drag guide removed) */}
-        <div className="relative w-full h-[155px] sm:h-[180px] my-auto flex items-center justify-center flex-shrink-0">
+        {/* Center: 3D Personal Identity Cube Canvas (Shifted Upwards, Sized to 1.35) */}
+        <div className="relative w-full h-[160px] sm:h-[185px] flex items-center justify-center flex-shrink-0 -my-1">
           <HeroCanvas cubeImages={cubeImages} />
         </div>
 
-        {/* Bottom: Main Headline + Complete Uncut Bio + Dual Buttons + KPI Stats */}
-        <div className="flex flex-col items-center w-full gap-2 flex-shrink-0 pb-1">
-          <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-white leading-tight">
+        {/* Bottom Section: Headline + Uncut Bio + Enlarged Buttons + Enlarged KPI Cards */}
+        <div className="flex flex-col items-center w-full gap-2.5 flex-shrink-0 pb-1">
+          <h1 className="text-lg sm:text-xl font-extrabold tracking-tight text-white leading-tight">
             {hero.headlinePrefix !== undefined ? hero.headlinePrefix : "Turning Ideas"}{" "}
             <span className="text-gradient-cyan">
               {hero.headlineGradient !== undefined ? hero.headlineGradient : "Into Elegant"}
@@ -78,39 +78,39 @@ export default function HeroSection({ hero }: HeroSectionProps) {
             {hero.headlineSuffix !== undefined ? hero.headlineSuffix : "Digital Solutions."}
           </h1>
 
-          {/* Full Bio Narrative with No Text Truncation / No Line Clamping */}
-          <p className="text-[11px] sm:text-xs text-slate-300/85 leading-relaxed max-w-sm font-light px-1">
+          {/* Full Bio Narrative with No Text Truncation */}
+          <p className="text-xs text-slate-300/90 leading-relaxed max-w-sm font-light px-2">
             {hero.bio ||
               "I create modern websites, scalable applications, interactive dashboards, and intelligent data solutions by combining software engineering, analytics, and machine learning."}
           </p>
 
-          {/* Dual Action Buttons (Side by Side in 1 row) */}
-          <div className="flex items-center justify-center gap-2.5 w-full max-w-xs mx-auto pt-0.5">
+          {/* Dual Action Buttons (Enlarged and comfortable) */}
+          <div className="flex items-center justify-center gap-3 w-full max-w-sm mx-auto pt-1">
             <a
               href={hero.primaryCtaLink || "#projects"}
-              className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full bg-white text-slate-950 font-semibold text-xs transition-all duration-300 hover:bg-cyan-50 shadow-[0_0_15px_rgba(56,189,248,0.25)] active:scale-95"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-white text-slate-950 font-semibold text-xs sm:text-sm transition-all duration-300 hover:bg-cyan-50 shadow-[0_0_20px_rgba(56,189,248,0.3)] active:scale-95"
             >
               <span>{hero.primaryCtaText || "View My Work"}</span>
-              <ArrowUpRight className="h-3.5 w-3.5" />
+              <ArrowUpRight className="h-4 w-4" />
             </a>
 
             <a
               href={hero.secondaryCtaLink || "#contact"}
-              className="flex-1 inline-flex items-center justify-center gap-1 px-3 py-2 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 backdrop-blur-xl text-white font-semibold text-xs transition-all duration-300 hover:border-white/30 active:scale-95"
+              className="flex-1 inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-white/[0.05] hover:bg-white/[0.1] border border-white/15 backdrop-blur-xl text-white font-semibold text-xs sm:text-sm transition-all duration-300 hover:border-white/30 active:scale-95"
             >
               <span>{hero.secondaryCtaText || "Get in Touch"}</span>
             </a>
           </div>
 
-          {/* KPI / Stats Metrics Bar for Mobile */}
+          {/* Enlarged KPI / Stats Metrics Bar for Mobile */}
           {hero.showStats !== false && (hero.stats || []).length > 0 && (
-            <div className="grid grid-cols-3 gap-1.5 w-full max-w-sm mx-auto pt-1">
+            <div className="grid grid-cols-3 gap-2 w-full max-w-sm mx-auto pt-1.5">
               {(hero.stats || []).slice(0, 3).map((stat) => (
-                <div key={stat.id} className="p-1.5 rounded-xl bg-white/[0.03] border border-white/10 backdrop-blur-md text-center">
-                  <span className={`block text-xs sm:text-sm font-bold tracking-tight ${stat.color || "text-cyan-400"}`}>
+                <div key={stat.id} className="p-2 sm:p-2.5 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-md text-center shadow-glass">
+                  <span className={`block text-sm sm:text-base font-bold tracking-tight ${stat.color || "text-cyan-400"}`}>
                     {stat.value}
                   </span>
-                  <span className="text-[8.5px] font-mono uppercase tracking-tight text-slate-400 block truncate">
+                  <span className="text-[9px] sm:text-[10px] font-mono uppercase tracking-tight text-slate-300 block truncate mt-0.5">
                     {stat.label}
                   </span>
                 </div>
@@ -119,6 +119,7 @@ export default function HeroSection({ hero }: HeroSectionProps) {
           )}
         </div>
       </div>
+
 
 
       {/* ========================================================================= */}
