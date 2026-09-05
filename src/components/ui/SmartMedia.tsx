@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import { Film, FileText, Image as ImageIcon, ExternalLink, Download } from "lucide-react";
 
@@ -45,7 +45,14 @@ export default function SmartMedia({
   isFullView = false,
 }: SmartMediaProps) {
   const [error, setError] = useState(false);
+  const [useFallbackImg, setUseFallbackImg] = useState(false);
   const [isVideoReady, setIsVideoReady] = useState(false);
+
+  useEffect(() => {
+    setError(false);
+    setUseFallbackImg(false);
+    setIsVideoReady(false);
+  }, [src]);
 
   if (!src || error) {
     return (
@@ -268,21 +275,32 @@ export default function SmartMedia({
       onContextMenu={(e) => e.preventDefault()}
       className={`overflow-hidden select-none ${fill ? "absolute inset-0 w-full h-full" : "relative w-full h-full"}`}
     >
-      <Image
-        src={src}
-        alt={alt || "Media Showcase"}
-        fill={fill}
-        priority={priority}
-        sizes={sizes || "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 440px"}
-        unoptimized={isDataOrSvg}
-        draggable={false}
-        onContextMenu={(e) => e.preventDefault()}
-        className={`${className} pointer-events-auto select-none`}
-        loading={priority ? "eager" : "lazy"}
-        onError={() => {
-          setError(true);
-        }}
-      />
+      {useFallbackImg ? (
+        <img
+          src={src}
+          alt={alt || "Media Showcase"}
+          draggable={false}
+          onContextMenu={(e) => e.preventDefault()}
+          onError={() => setError(true)}
+          className={`${className} pointer-events-auto select-none ${fill ? "w-full h-full object-cover" : "w-full h-auto"}`}
+        />
+      ) : (
+        <Image
+          src={src}
+          alt={alt || "Media Showcase"}
+          fill={fill}
+          priority={priority}
+          sizes={sizes || "(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 440px"}
+          unoptimized={isDataOrSvg}
+          draggable={false}
+          onContextMenu={(e) => e.preventDefault()}
+          className={`${className} pointer-events-auto select-none`}
+          loading={priority ? "eager" : "lazy"}
+          onError={() => {
+            setUseFallbackImg(true);
+          }}
+        />
+      )}
     </div>
   );
 }

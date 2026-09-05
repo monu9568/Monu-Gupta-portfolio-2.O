@@ -73,14 +73,15 @@ export default function ExperienceEditor({
     if (!editingExp) return;
     setSaving(true);
 
+    const hasCert = Boolean(editingExp.certificateUrl && editingExp.certificateUrl.trim() !== "");
     const cleanedExp: Partial<ExperienceData> = {
       ...editingExp,
       location: showLocation ? editingExp.location || "" : "",
       period: showPeriod ? editingExp.period || "" : "",
       type: showType ? editingExp.type || "" : "",
       description: showDescription ? editingExp.description || "" : "",
-      certificateUrl: showCertificate ? editingExp.certificateUrl || null : null,
-      certificateTitle: showCertificate ? editingExp.certificateTitle || null : null,
+      certificateUrl: showCertificate || hasCert ? editingExp.certificateUrl || null : null,
+      certificateTitle: showCertificate || hasCert ? editingExp.certificateTitle || null : null,
       achievements: showAchievements ? editingExp.achievements || [] : [],
       technologies: showTechnologies ? editingExp.technologies || [] : [],
     };

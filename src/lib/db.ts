@@ -27,6 +27,7 @@ const SEED_ADMIN_FILE = path.join(SEED_DATA_DIR, "admin.json");
 let memoryPortfolioData: FullPortfolioData | null = null;
 let memoryMessages: MessageData[] | null = null;
 let memoryAdmin: { username: string; passwordHash: string } | null = null;
+let cachedCloudBlobUrl: string | null = null;
 
 function ensureDataDir() {
   try {
@@ -48,18 +49,24 @@ function ensureDataDir() {
   }
 }
 
-// Global Cloud Sync via Vercel Blob Storage
-export async function syncToCloudStorage(data: FullPortfolioData): Promise<void> {
-  if (!BLOB_TOKEN) return;
+// Global Cloud Sync via Vercel Blob Storage with deterministic URL tracking
+export async function syncToCloudStorage(data: FullPortfolioData): Promise<string | null> {
+  if (!BLOB_TOKEN) return null;
   try {
-    await put("portfolio_database/portfolio.json", JSON.stringify(data, null, 2), {
+    const blob = await put("portfolio_database/portfolio.json", JSON.stringify(data, null, 2), {
       access: "public",
       addRandomSuffix: false,
+      allowOverwrite: true,
       token: BLOB_TOKEN,
     });
+    if (blob?.url) {
+      cachedCloudBlobUrl = blob.url;
+      return blob.url;
+    }
   } catch (err) {
-    console.warn("Vercel Blob cloud sync notice:", err);
+    console.error("Vercel Blob cloud sync error:", err);
   }
+  return null;
 }
 
 export function getPortfolioData(): FullPortfolioData {
@@ -98,33 +105,52 @@ export function getPortfolioData(): FullPortfolioData {
 }
 
 export async function getPortfolioDataFresh(): Promise<FullPortfolioData> {
-  if (IS_SERVERLESS && BLOB_TOKEN) {
+  if (BLOB_TOKEN) {
     try {
-      const blobUrl = `https://wocktcd4v9eovljz.public.blob.vercel-storage.com/portfolio_database/portfolio.json?t=${Date.now()}`;
-      const res = await fetch(blobUrl, { cache: "no-store" });
-      if (res.ok) {
-        const cloudData = await res.json();
-        if (cloudData && cloudData.hero) {
-          memoryPortfolioData = {
-            ...defaultPortfolioData,
-            ...cloudData,
-            hero: { ...defaultPortfolioData.hero, ...cloudData.hero },
-            about: { ...defaultPortfolioData.about, ...cloudData.about },
-            settings: { ...defaultPortfolioData.settings, ...cloudData.settings },
-          };
-          try {
-            ensureDataDir();
-            fs.writeFileSync(DATA_FILE, JSON.stringify(memoryPortfolioData, null, 2), "utf-8");
-          } catch {}
-          return memoryPortfolioData!;
+      let targetUrl = cachedCloudBlobUrl;
+      if (!targetUrl) {
+        const { list } = await import("@vercel/blob");
+        const listResult = await list({ prefix: "portfolio_database/portfolio.json", token: BLOB_TOKEN });
+        if (listResult.blobs && listResult.blobs.length > 0) {
+          targetUrl = listResult.blobs[0].url;
+          cachedCloudBlobUrl = targetUrl;
+        } else {
+          // Fallback direct URL pattern
+          targetUrl = "https://wocktcd4v9eovljz.public.blob.vercel-storage.com/portfolio_database/portfolio.json";
         }
       }
-    } catch {}
+
+      if (targetUrl) {
+        const res = await fetch(`${targetUrl}${targetUrl.includes("?") ? "&" : "?"}t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate" },
+        });
+        if (res.ok) {
+          const cloudData = await res.json();
+          if (cloudData && cloudData.hero) {
+            memoryPortfolioData = {
+              ...defaultPortfolioData,
+              ...cloudData,
+              hero: { ...defaultPortfolioData.hero, ...cloudData.hero },
+              about: { ...defaultPortfolioData.about, ...cloudData.about },
+              settings: { ...defaultPortfolioData.settings, ...cloudData.settings },
+            };
+            try {
+              ensureDataDir();
+              fs.writeFileSync(DATA_FILE, JSON.stringify(memoryPortfolioData, null, 2), "utf-8");
+            } catch {}
+            return memoryPortfolioData!;
+          }
+        }
+      }
+    } catch (blobFetchErr) {
+      console.warn("getPortfolioDataFresh Blob read warning:", blobFetchErr);
+    }
   }
   return getPortfolioData();
 }
 
-export function savePortfolioData(data: FullPortfolioData): void {
+export async function savePortfolioData(data: FullPortfolioData): Promise<void> {
   memoryPortfolioData = data;
   ensureDataDir();
   try {
@@ -136,32 +162,31 @@ export function savePortfolioData(data: FullPortfolioData): void {
     console.warn("Filesystem write fallback, retained in memory:", err);
   }
 
-  // Trigger cloud sync to Vercel Blob
-  syncToCloudStorage(data).catch(() => {});
+  // Trigger and await cloud sync to Vercel Blob
+  await syncToCloudStorage(data);
 }
 
-
-export function updateHero(hero: Partial<HeroData>): HeroData {
-  const current = getPortfolioData();
+export async function updateHero(hero: Partial<HeroData>): Promise<HeroData> {
+  const current = await getPortfolioDataFresh();
   const updatedHero = { ...current.hero, ...hero };
   current.hero = updatedHero;
-  savePortfolioData(current);
+  await savePortfolioData(current);
   return updatedHero;
 }
 
-export function updateAbout(about: Partial<AboutData>): AboutData {
-  const current = getPortfolioData();
+export async function updateAbout(about: Partial<AboutData>): Promise<AboutData> {
+  const current = await getPortfolioDataFresh();
   const updatedAbout = { ...current.about, ...about };
   current.about = updatedAbout;
-  savePortfolioData(current);
+  await savePortfolioData(current);
   return updatedAbout;
 }
 
-export function updateSettings(settings: Partial<SiteSettingsData>): SiteSettingsData {
-  const current = getPortfolioData();
+export async function updateSettings(settings: Partial<SiteSettingsData>): Promise<SiteSettingsData> {
+  const current = await getPortfolioDataFresh();
   const updated = { ...current.settings, ...settings };
   current.settings = updated;
-  savePortfolioData(current);
+  await savePortfolioData(current);
   return updated;
 }
 
@@ -171,8 +196,8 @@ export function getProjects(): ProjectData[] {
   return data.projects.sort((a, b) => a.order - b.order);
 }
 
-export function saveProject(project: Partial<ProjectData> & { id?: string }): ProjectData {
-  const current = getPortfolioData();
+export async function saveProject(project: Partial<ProjectData> & { id?: string }): Promise<ProjectData> {
+  const current = await getPortfolioDataFresh();
   let updatedProject: ProjectData;
 
   if (project.id) {
@@ -232,16 +257,16 @@ export function saveProject(project: Partial<ProjectData> & { id?: string }): Pr
     current.projects.push(updatedProject);
   }
 
-  savePortfolioData(current);
+  await savePortfolioData(current);
   return updatedProject;
 }
 
-export function deleteProject(id: string): boolean {
-  const current = getPortfolioData();
+export async function deleteProject(id: string): Promise<boolean> {
+  const current = await getPortfolioDataFresh();
   const initialLen = current.projects.length;
   current.projects = current.projects.filter((p) => p.id !== id);
   if (current.projects.length !== initialLen) {
-    savePortfolioData(current);
+    await savePortfolioData(current);
     return true;
   }
   return false;
@@ -252,8 +277,8 @@ export function getSkills(): SkillData[] {
   return getPortfolioData().skills.sort((a, b) => a.order - b.order);
 }
 
-export function saveSkill(skill: Partial<SkillData> & { id?: string }): SkillData {
-  const current = getPortfolioData();
+export async function saveSkill(skill: Partial<SkillData> & { id?: string }): Promise<SkillData> {
+  const current = await getPortfolioDataFresh();
   let updatedSkill: SkillData;
 
   if (skill.id) {
@@ -288,16 +313,16 @@ export function saveSkill(skill: Partial<SkillData> & { id?: string }): SkillDat
     current.skills.push(updatedSkill);
   }
 
-  savePortfolioData(current);
+  await savePortfolioData(current);
   return updatedSkill;
 }
 
-export function deleteSkill(id: string): boolean {
-  const current = getPortfolioData();
+export async function deleteSkill(id: string): Promise<boolean> {
+  const current = await getPortfolioDataFresh();
   const initialLen = current.skills.length;
   current.skills = current.skills.filter((s) => s.id !== id);
   if (current.skills.length !== initialLen) {
-    savePortfolioData(current);
+    await savePortfolioData(current);
     return true;
   }
   return false;
@@ -308,8 +333,8 @@ export function getExperience(): ExperienceData[] {
   return getPortfolioData().experience.sort((a, b) => a.order - b.order);
 }
 
-export function saveExperience(exp: Partial<ExperienceData> & { id?: string }): ExperienceData {
-  const current = getPortfolioData();
+export async function saveExperience(exp: Partial<ExperienceData> & { id?: string }): Promise<ExperienceData> {
+  const current = await getPortfolioDataFresh();
   let updatedExp: ExperienceData;
 
   if (exp.id) {
@@ -352,39 +377,39 @@ export function saveExperience(exp: Partial<ExperienceData> & { id?: string }): 
     current.experience.push(updatedExp);
   }
 
-  savePortfolioData(current);
+  await savePortfolioData(current);
   return updatedExp;
 }
 
-export function deleteExperience(id: string): boolean {
-  const current = getPortfolioData();
+export async function deleteExperience(id: string): Promise<boolean> {
+  const current = await getPortfolioDataFresh();
   const initialLen = current.experience.length;
   current.experience = current.experience.filter((e) => e.id !== id);
   if (current.experience.length !== initialLen) {
-    savePortfolioData(current);
+    await savePortfolioData(current);
     return true;
   }
   return false;
 }
 
-export function reorderProjects(orderedProjects: ProjectData[]): ProjectData[] {
-  const current = getPortfolioData();
+export async function reorderProjects(orderedProjects: ProjectData[]): Promise<ProjectData[]> {
+  const current = await getPortfolioDataFresh();
   current.projects = orderedProjects.map((p, idx) => ({ ...p, order: idx + 1 }));
-  savePortfolioData(current);
+  await savePortfolioData(current);
   return current.projects;
 }
 
-export function reorderSkills(orderedSkills: SkillData[]): SkillData[] {
-  const current = getPortfolioData();
+export async function reorderSkills(orderedSkills: SkillData[]): Promise<SkillData[]> {
+  const current = await getPortfolioDataFresh();
   current.skills = orderedSkills.map((s, idx) => ({ ...s, order: idx + 1 }));
-  savePortfolioData(current);
+  await savePortfolioData(current);
   return current.skills;
 }
 
-export function reorderExperience(orderedExp: ExperienceData[]): ExperienceData[] {
-  const current = getPortfolioData();
+export async function reorderExperience(orderedExp: ExperienceData[]): Promise<ExperienceData[]> {
+  const current = await getPortfolioDataFresh();
   current.experience = orderedExp.map((e, idx) => ({ ...e, order: idx + 1 }));
-  savePortfolioData(current);
+  await savePortfolioData(current);
   return current.experience;
 }
 

@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Upload, Copy, Check, Image as ImageIcon, Video, RefreshCw, Folder, Trash2, Loader2 } from "lucide-react";
+import { Upload, Copy, Check, Image as ImageIcon, Video, RefreshCw, Folder, Trash2, Loader2, Sparkles, User, Box } from "lucide-react";
 import GlassCard from "../ui/GlassCard";
 import Image from "next/image";
 import { upload } from "@vercel/blob/client";
-
 
 interface MediaAsset {
   name: string;
@@ -21,6 +20,7 @@ export default function MediaLibrary() {
   const [uploading, setUploading] = useState(false);
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [applyingState, setApplyingState] = useState<{ [key: string]: string }>({});
 
   const fetchAssets = async () => {
     setLoading(true);
@@ -38,6 +38,57 @@ export default function MediaLibrary() {
   useEffect(() => {
     fetchAssets();
   }, []);
+
+  const notifySync = () => {
+    try {
+      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
+        const channel = new BroadcastChannel("portfolio_cms_updates");
+        channel.postMessage({ type: "cms_updated", timestamp: Date.now() });
+        channel.close();
+      }
+    } catch {}
+  };
+
+  const handleQuickApply = async (url: string, target: "about_photo" | "cube_front" | "hero_avatar") => {
+    const key = `${url}-${target}`;
+    setApplyingState((prev) => ({ ...prev, [key]: "applying" }));
+
+    try {
+      let body: any = {};
+      if (target === "about_photo") {
+        body = { section: "about", data: { photoUrl: url, showPhotoCard: true } };
+      } else if (target === "cube_front") {
+        body = { section: "hero", data: { cubeFrontImg: url } };
+      } else if (target === "hero_avatar") {
+        body = { section: "hero", data: { avatarUrl: url } };
+      }
+
+      const res = await fetch("/api/portfolio", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) throw new Error("Failed to apply asset");
+      notifySync();
+
+      setApplyingState((prev) => ({ ...prev, [key]: "applied" }));
+      setTimeout(() => {
+        setApplyingState((prev) => {
+          const next = { ...prev };
+          delete next[key];
+          return next;
+        });
+      }, 3000);
+    } catch (err: any) {
+      alert(err.message || "Failed to apply");
+      setApplyingState((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    }
+  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -91,7 +142,8 @@ export default function MediaLibrary() {
       }
 
       await fetchAssets();
-      alert("File uploaded successfully!");
+      notifySync();
+      alert("File uploaded successfully to Media Library!");
     } catch (err: any) {
       alert(err.message || "Failed to upload");
     } finally {
@@ -109,6 +161,7 @@ export default function MediaLibrary() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Delete failed");
       await fetchAssets();
+      notifySync();
     } catch (err: any) {
       alert(err.message || "Failed to delete file");
     }
@@ -130,12 +183,12 @@ export default function MediaLibrary() {
         <div>
           <h2 className="text-xl font-bold text-white tracking-tight">Media Asset Library</h2>
           <p className="text-xs text-slate-400 font-light mt-0.5">
-            Manage high-resolution photography, 3D cube textures, and project showcase visual assets.
+            Manage photography, 3D cube textures, and project visual assets with instant 1-click live assignment.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-semibold text-xs transition-all hover:scale-105 cursor-pointer">
+          <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-semibold text-xs transition-all hover:scale-105 cursor-pointer shadow-sm">
             {uploading ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -158,7 +211,7 @@ export default function MediaLibrary() {
 
           <button
             onClick={fetchAssets}
-            className="p-2 rounded-xl bg-white/[0.05] text-slate-300 hover:text-white"
+            className="p-2 rounded-xl bg-white/[0.05] text-slate-300 hover:text-white transition-colors"
             title="Refresh assets"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
@@ -167,7 +220,7 @@ export default function MediaLibrary() {
       </div>
 
       {/* Category Tabs */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 overflow-x-auto pb-1">
         {["all", "personal", "projects", "ui", "video"].map((cat) => (
           <button
             key={cat}
@@ -184,7 +237,7 @@ export default function MediaLibrary() {
       </div>
 
       {/* Media Grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {loading ? (
           <div className="col-span-full py-12 flex flex-col items-center justify-center gap-2 text-cyan-400 text-xs font-mono">
             <Loader2 className="h-5 w-5 animate-spin" />
@@ -195,58 +248,130 @@ export default function MediaLibrary() {
             No media files found in this category.
           </div>
         ) : (
-          filtered.map((asset, idx) => (
-            <GlassCard key={idx} className="p-3 border border-white/10 group space-y-2 relative">
-              <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black/40 border border-white/10">
-                {asset.isVideo ? (
-                  <div className="relative h-full w-full flex items-center justify-center bg-slate-900">
-                    <Video className="h-8 w-8 text-cyan-400" />
-                    <span className="absolute bottom-1 right-1 px-1 rounded bg-black/80 text-[8px] font-mono text-cyan-300">
-                      VIDEO
-                    </span>
+          filtered.map((asset, idx) => {
+            const isAboutApplying = applyingState[`${asset.url}-about_photo`];
+            const isCubeApplying = applyingState[`${asset.url}-cube_front`];
+
+            return (
+              <GlassCard key={idx} className="p-3 border border-white/10 group space-y-2.5 relative flex flex-col justify-between">
+                <div className="space-y-2">
+                  <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-black/40 border border-white/10">
+                    {asset.isVideo ? (
+                      <div className="relative h-full w-full flex items-center justify-center bg-slate-900">
+                        <Video className="h-8 w-8 text-cyan-400" />
+                        <span className="absolute bottom-1 right-1 px-1 rounded bg-black/80 text-[8px] font-mono text-cyan-300">
+                          VIDEO
+                        </span>
+                      </div>
+                    ) : (
+                      <Image src={asset.url} alt={asset.name} fill className="object-cover group-hover:scale-105 transition-transform" />
+                    )}
+
+                    {/* Delete overlay button */}
+                    <button
+                      onClick={() => handleDeleteAsset(asset.url, asset.name)}
+                      className="absolute top-1.5 right-1.5 h-6 w-6 rounded-md bg-black/70 hover:bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md z-10"
+                      title="Delete asset"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
                   </div>
-                ) : (
-                  <Image src={asset.url} alt={asset.name} fill className="object-cover group-hover:scale-105 transition-transform" />
-                )}
 
-                {/* Delete overlay button */}
-                <button
-                  onClick={() => handleDeleteAsset(asset.url, asset.name)}
-                  className="absolute top-1.5 right-1.5 h-6 w-6 rounded-md bg-black/70 hover:bg-rose-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-md"
-                  title="Delete asset"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              </div>
-
-              <div className="space-y-1">
-                <span className="text-[11px] font-mono text-slate-300 block truncate" title={asset.name}>
-                  {asset.name}
-                </span>
-                <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                  <span>{(asset.size / 1024 / 1024).toFixed(1)} MB</span>
-                  <span className="capitalize">{asset.category}</span>
+                  <div className="space-y-0.5">
+                    <span className="text-[11px] font-mono text-slate-300 block truncate font-medium" title={asset.name}>
+                      {asset.name}
+                    </span>
+                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
+                      <span>{(asset.size / 1024 / 1024).toFixed(1)} MB</span>
+                      <span className="capitalize">{asset.category}</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <button
-                onClick={() => copyToClipboard(asset.url)}
-                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[11px] font-mono text-slate-300 hover:text-white transition-colors"
-              >
-                {copiedUrl === asset.url ? (
-                  <>
-                    <Check className="h-3 w-3 text-emerald-400" />
-                    <span className="text-emerald-400">Path Copied</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-3 w-3" />
-                    <span>Copy URL</span>
-                  </>
-                )}
-              </button>
-            </GlassCard>
-          ))
+                {/* Action Buttons */}
+                <div className="space-y-1.5 pt-1 border-t border-white/5">
+                  {!asset.isVideo && (
+                    <div className="grid grid-cols-2 gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleQuickApply(asset.url, "about_photo")}
+                        disabled={Boolean(isAboutApplying)}
+                        className={`flex items-center justify-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-mono transition-all ${
+                          isAboutApplying === "applied"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : "bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/20 hover:border-cyan-500/40"
+                        }`}
+                        title="Set as About Section Portrait Card"
+                      >
+                        {isAboutApplying === "applied" ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-400" />
+                            <span>Saved!</span>
+                          </>
+                        ) : isAboutApplying === "applying" ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span>Applying</span>
+                          </>
+                        ) : (
+                          <>
+                            <User className="h-3 w-3 text-cyan-400" />
+                            <span>About Card</span>
+                          </>
+                        )}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleQuickApply(asset.url, "cube_front")}
+                        disabled={Boolean(isCubeApplying)}
+                        className={`flex items-center justify-center gap-1 py-1 px-1.5 rounded-lg text-[10px] font-mono transition-all ${
+                          isCubeApplying === "applied"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            : "bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 hover:border-indigo-500/40"
+                        }`}
+                        title="Set as 3D Cube Front Face"
+                      >
+                        {isCubeApplying === "applied" ? (
+                          <>
+                            <Check className="h-3 w-3 text-emerald-400" />
+                            <span>Saved!</span>
+                          </>
+                        ) : isCubeApplying === "applying" ? (
+                          <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span>Applying</span>
+                          </>
+                        ) : (
+                          <>
+                            <Box className="h-3 w-3 text-indigo-400" />
+                            <span>Cube Front</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => copyToClipboard(asset.url)}
+                    className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-[10px] font-mono text-slate-300 hover:text-white transition-colors"
+                  >
+                    {copiedUrl === asset.url ? (
+                      <>
+                        <Check className="h-3 w-3 text-emerald-400" />
+                        <span className="text-emerald-400">Path Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="h-3 w-3" />
+                        <span>Copy URL</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </GlassCard>
+            );
+          })
         )}
       </div>
     </div>

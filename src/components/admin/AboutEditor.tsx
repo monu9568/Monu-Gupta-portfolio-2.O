@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Save,
   Check,
@@ -17,6 +17,7 @@ import {
   Tag,
   FileText,
   Image as ImageIcon,
+  Loader2,
 } from "lucide-react";
 import GlassCard from "../ui/GlassCard";
 import { AboutData } from "@/lib/types";
@@ -61,6 +62,20 @@ export default function AboutEditor({ about, onSave }: AboutEditorProps) {
 
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [quickSavingPhoto, setQuickSavingPhoto] = useState(false);
+  const [photoSaved, setPhotoSaved] = useState(false);
+
+  useEffect(() => {
+    if (about) {
+      setFormData((prev) => ({
+        ...prev,
+        ...about,
+        photoUrl: about.photoUrl !== undefined ? about.photoUrl : prev.photoUrl,
+        coreValues: about.coreValues || prev.coreValues,
+        hardwareSpecs: about.hardwareSpecs || prev.hardwareSpecs,
+      }));
+    }
+  }, [about]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,6 +88,21 @@ export default function AboutEditor({ about, onSave }: AboutEditorProps) {
       alert("Failed to save about section");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleQuickSavePhoto = async (url: string) => {
+    setQuickSavingPhoto(true);
+    try {
+      const updated = { ...formData, photoUrl: url, showPhotoCard: true };
+      setFormData(updated);
+      await onSave(updated);
+      setPhotoSaved(true);
+      setTimeout(() => setPhotoSaved(false), 3000);
+    } catch {
+      alert("Failed to save photo");
+    } finally {
+      setQuickSavingPhoto(false);
     }
   };
 
@@ -470,10 +500,41 @@ export default function AboutEditor({ about, onSave }: AboutEditorProps) {
             <MediaUploadInput
               label="Showcase Portrait Image or Video Media"
               value={formData.photoUrl || ""}
-              onChange={(url) => setFormData({ ...formData, photoUrl: url })}
+              onChange={(url) => {
+                setFormData({ ...formData, photoUrl: url });
+              }}
               category="about"
               helperText="Upload your custom photo portrait or media (supports PNG, JPG, WebP, SVG, MP4, WebM). Defaults to cube front / avatar if left empty."
             />
+
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] font-mono text-slate-400">
+                {photoSaved ? "✅ Photo successfully saved & synced to live portfolio!" : "Upload or choose from Library, then click Quick Save Photo"}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleQuickSavePhoto(formData.photoUrl || "")}
+                disabled={quickSavingPhoto}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-semibold text-xs transition-all shadow-sm active:scale-95"
+              >
+                {photoSaved ? (
+                  <>
+                    <Check className="h-3.5 w-3.5 text-emerald-950 stroke-[3]" />
+                    <span>Photo Saved!</span>
+                  </>
+                ) : quickSavingPhoto ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-3.5 w-3.5" />
+                    <span>Quick Save Photo</span>
+                  </>
+                )}
+              </button>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
               <div className="space-y-1">

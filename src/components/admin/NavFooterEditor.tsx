@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Save,
   Check,
@@ -56,6 +56,17 @@ export default function NavFooterEditor({ settings, onSave }: NavFooterEditorPro
 
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    if (settings) {
+      setFormData((prev) => ({
+        ...prev,
+        ...settings,
+        navItems: settings.navItems && settings.navItems.length > 0 ? settings.navItems : prev.navItems,
+        footerLinks: settings.footerLinks || prev.footerLinks,
+      }));
+    }
+  }, [settings]);
 
   const handleFieldChange = (field: keyof SiteSettingsData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Save,
   Check,
@@ -54,6 +54,16 @@ export default function HeroEditor({ hero, onSave }: HeroEditorProps) {
 
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    if (hero) {
+      setFormData((prev) => ({
+        ...prev,
+        ...hero,
+        stats: hero.stats || prev.stats,
+      }));
+    }
+  }, [hero]);
 
   const handleChange = (field: keyof HeroData, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));

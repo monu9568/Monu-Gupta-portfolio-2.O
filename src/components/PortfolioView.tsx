@@ -90,7 +90,7 @@ export default function PortfolioView({ initialData }: PortfolioViewProps) {
       <ExperienceSection experience={data.experience} />
 
       {/* Origin, Philosophy & Studio Environment */}
-      <AboutSection about={data.about} avatarImg={data.about.photoUrl || data.hero.avatarUrl} />
+      <AboutSection about={data.about} avatarImg={data.about.photoUrl || data.hero.cubeFrontImg || data.hero.avatarUrl} />
 
       {/* Luxury Encrypted Contact Inquiries */}
       <ContactSection hero={data.hero} />

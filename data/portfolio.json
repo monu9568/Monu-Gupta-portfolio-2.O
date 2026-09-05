@@ -553,7 +553,7 @@
       }
     ],
     "showPhotoCard": true,
-    "photoUrl": "/images/about/profile-showcase.webp",
+    "photoUrl": "https://wocktcd4v9eovljz.public.blob.vercel-storage.com/1788637358996-Gemini_Generated_Image_vp3hu4vp3hu4vp3h.png",
     "photoOverlayTag": "Full-Stack • Data & AI",
     "photoOverlayName": "Monu Gupta",
     "showPhilosophy": true,

@@ -160,6 +160,7 @@ export async function POST(req: NextRequest) {
         const blobPath = `${category}/${cleanFileName}`;
         const blobResult = await put(blobPath, buffer, {
           access: "public",
+          allowOverwrite: true,
           token: BLOB_TOKEN,
           contentType: file.type || (isPdf ? "application/pdf" : isVideo ? "video/mp4" : "image/webp"),
         });

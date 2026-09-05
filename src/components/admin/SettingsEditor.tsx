@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Save, Check, KeyRound, Download, Upload, RotateCcw, AlertTriangle, ShieldCheck } from "lucide-react";
 import GlassCard from "../ui/GlassCard";
 import { SiteSettingsData } from "@/lib/types";
@@ -16,6 +16,12 @@ export default function SettingsEditor({ settings, onSaveSettings, onRefreshData
   const [formData, setFormData] = useState<SiteSettingsData>(settings);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+
+  useEffect(() => {
+    if (settings) {
+      setFormData(settings);
+    }
+  }, [settings]);
 
   // Credentials change state
   const [currentPassword, setCurrentPassword] = useState("");

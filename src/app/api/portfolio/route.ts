@@ -31,40 +31,43 @@ export async function PUT(req: NextRequest) {
     let responsePayload: any = { success: true };
 
     if (section === "hero") {
-      const updated = updateHero(data);
+      const updated = await updateHero(data);
       responsePayload = { success: true, hero: updated };
     } else if (section === "about") {
-      const updated = updateAbout(data);
+      const updated = await updateAbout(data);
       responsePayload = { success: true, about: updated };
     } else if (section === "settings") {
-      const updated = updateSettings(data);
+      const updated = await updateSettings(data);
       responsePayload = { success: true, settings: updated };
     } else if (section === "skill") {
-      const updated = saveSkill(data);
+      const updated = await saveSkill(data);
       responsePayload = { success: true, skill: updated };
     } else if (section === "experience") {
-      const updated = saveExperience(data);
+      const updated = await saveExperience(data);
       responsePayload = { success: true, experience: updated };
     } else if (section === "reorder_projects") {
-      savePortfolioData({
-        ...getPortfolioData(),
+      const freshData = await getPortfolioDataFresh();
+      await savePortfolioData({
+        ...freshData,
         projects: data.map((p: any, idx: number) => ({ ...p, order: idx + 1 })),
       });
       responsePayload = { success: true };
     } else if (section === "reorder_skills") {
-      savePortfolioData({
-        ...getPortfolioData(),
+      const freshData = await getPortfolioDataFresh();
+      await savePortfolioData({
+        ...freshData,
         skills: data.map((s: any, idx: number) => ({ ...s, order: idx + 1 })),
       });
       responsePayload = { success: true };
     } else if (section === "reorder_experience") {
-      savePortfolioData({
-        ...getPortfolioData(),
+      const freshData = await getPortfolioDataFresh();
+      await savePortfolioData({
+        ...freshData,
         experience: data.map((e: any, idx: number) => ({ ...e, order: idx + 1 })),
       });
       responsePayload = { success: true };
     } else if (section === "full") {
-      savePortfolioData(data);
+      await savePortfolioData(data);
       responsePayload = { success: true };
     } else {
       return NextResponse.json({ error: "Invalid section" }, { status: 400, headers: NO_CACHE_HEADERS });
@@ -101,9 +104,9 @@ export async function DELETE(req: NextRequest) {
     }
 
     if (type === "skill") {
-      deleteSkill(id);
+      await deleteSkill(id);
     } else if (type === "experience") {
-      deleteExperience(id);
+      await deleteExperience(id);
     } else {
       return NextResponse.json({ error: "Invalid type" }, { status: 400, headers: NO_CACHE_HEADERS });
     }
