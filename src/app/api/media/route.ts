@@ -21,13 +21,27 @@ const BLOB_TOKEN =
   "vercel_blob_rw_WOcKtcD4V9eOVLjZ_R2ISZzTvebeG7nthMXsiT6LfOKw5CP";
 
 const HAS_VERCEL_BLOB = Boolean(BLOB_TOKEN);
-const HAS_CLOUDINARY = Boolean(process.env.CLOUDINARY_URL || (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY));
+const HAS_CLOUDINARY = Boolean(
+  process.env.CLOUDINARY_URL ||
+  (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY)
+);
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+export const fetchCache = "force-no-store";
+
+const NO_CACHE_HEADERS = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0",
+  Pragma: "no-cache",
+  Expires: "0",
+  "Surrogate-Control": "no-store",
+};
 
 export async function GET(req: NextRequest) {
   try {
     const sessionCookie = req.cookies.get("admin_session")?.value;
     if (!sessionCookie || !verifySessionToken(sessionCookie).valid) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_CACHE_HEADERS });
     }
 
     const assets: { name: string; url: string; category: string; size: number; isVideo: boolean; isPdf: boolean }[] = [];
@@ -116,9 +130,9 @@ export async function GET(req: NextRequest) {
       // Local filesystem read fallback
     }
 
-    return NextResponse.json(assets);
+    return NextResponse.json(assets, { headers: NO_CACHE_HEADERS });
   } catch (err: any) {
-    return NextResponse.json({ error: err.message || "Failed to scan media" }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Failed to scan media" }, { status: 500, headers: NO_CACHE_HEADERS });
   }
 }
 

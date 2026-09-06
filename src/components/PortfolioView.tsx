@@ -26,7 +26,7 @@ export default function PortfolioView({ initialData }: PortfolioViewProps) {
       try {
         const res = await fetch(`/api/portfolio?t=${Date.now()}`, {
           cache: "no-store",
-          headers: { "Cache-Control": "no-cache" },
+          headers: { "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate" },
         });
         if (res.ok) {
           const fresh = await res.json();
@@ -46,8 +46,16 @@ export default function PortfolioView({ initialData }: PortfolioViewProps) {
         fetchLatest();
       }
     };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === "portfolio_cms_sync") {
+        fetchLatest();
+      }
+    };
+
     window.addEventListener("visibilitychange", handleVisibilityChange);
     window.addEventListener("focus", fetchLatest);
+    window.addEventListener("storage", handleStorage);
 
     let channel: BroadcastChannel | null = null;
     try {
@@ -59,11 +67,12 @@ export default function PortfolioView({ initialData }: PortfolioViewProps) {
       }
     } catch {}
 
-    const interval = setInterval(fetchLatest, 4000);
+    const interval = setInterval(fetchLatest, 2000);
 
     return () => {
       window.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", fetchLatest);
+      window.removeEventListener("storage", handleStorage);
       if (channel) channel.close();
       clearInterval(interval);
     };

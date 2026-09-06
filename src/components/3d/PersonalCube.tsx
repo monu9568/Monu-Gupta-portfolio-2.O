@@ -52,6 +52,7 @@ export default function PersonalCube({
   // Non-blocking background texture streaming
   useEffect(() => {
     const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin("anonymous");
     const urls = [
       rightImg || "/images/personal/cube-creative.webp",
       leftImg || "/images/personal/cube-code.webp",

@@ -101,10 +101,13 @@ export default function AdminPage() {
 
   const notifyFrontendSync = () => {
     try {
-      if (typeof window !== "undefined" && "BroadcastChannel" in window) {
-        const channel = new BroadcastChannel("portfolio_cms_updates");
-        channel.postMessage({ type: "cms_updated", timestamp: Date.now() });
-        channel.close();
+      if (typeof window !== "undefined") {
+        if ("BroadcastChannel" in window) {
+          const channel = new BroadcastChannel("portfolio_cms_updates");
+          channel.postMessage({ type: "cms_updated", timestamp: Date.now() });
+          channel.close();
+        }
+        localStorage.setItem("portfolio_cms_sync", Date.now().toString());
       }
     } catch {}
   };
@@ -113,11 +116,15 @@ export default function AdminPage() {
     try {
       const res = await fetch(`/api/portfolio?t=${Date.now()}`, {
         cache: "no-store",
-        headers: { "Cache-Control": "no-cache" },
+        headers: { "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate" },
       });
-      const json = await res.json();
-      setData(json);
-      notifyFrontendSync();
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.hero) {
+          setData(json);
+          notifyFrontendSync();
+        }
+      }
     } catch (err) {
       console.error("Failed to load portfolio data in CMS", err);
     }
@@ -138,6 +145,10 @@ export default function AdminPage() {
   };
 
   const handleSaveHero = async (updated: Partial<HeroData>) => {
+    if (data) {
+      setData({ ...data, hero: { ...data.hero, ...updated } });
+    }
+    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -148,6 +159,10 @@ export default function AdminPage() {
   };
 
   const handleSaveAbout = async (updated: Partial<AboutData>) => {
+    if (data) {
+      setData({ ...data, about: { ...data.about, ...updated } });
+    }
+    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -158,6 +173,10 @@ export default function AdminPage() {
   };
 
   const handleSaveSettings = async (updated: Partial<SiteSettingsData>) => {
+    if (data) {
+      setData({ ...data, settings: { ...data.settings, ...updated } });
+    }
+    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -168,6 +187,7 @@ export default function AdminPage() {
   };
 
   const handleSaveProject = async (proj: Partial<ProjectData>) => {
+    notifyFrontendSync();
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -178,12 +198,17 @@ export default function AdminPage() {
   };
 
   const handleDeleteProject = async (id: string) => {
+    notifyFrontendSync();
     const res = await fetch(`/api/projects?id=${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Failed to delete project");
     await fetchPortfolioData();
   };
 
   const handleReorderProjects = async (projects: ProjectData[]) => {
+    if (data) {
+      setData({ ...data, projects });
+    }
+    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -194,6 +219,7 @@ export default function AdminPage() {
   };
 
   const handleSaveSkill = async (skill: Partial<SkillData>) => {
+    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -204,12 +230,17 @@ export default function AdminPage() {
   };
 
   const handleDeleteSkill = async (id: string) => {
+    notifyFrontendSync();
     const res = await fetch(`/api/portfolio?type=skill&id=${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Failed to delete skill");
     await fetchPortfolioData();
   };
 
   const handleReorderSkills = async (skills: SkillData[]) => {
+    if (data) {
+      setData({ ...data, skills });
+    }
+    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -220,6 +251,7 @@ export default function AdminPage() {
   };
 
   const handleSaveExperience = async (exp: Partial<ExperienceData>) => {
+    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -230,12 +262,17 @@ export default function AdminPage() {
   };
 
   const handleDeleteExperience = async (id: string) => {
+    notifyFrontendSync();
     const res = await fetch(`/api/portfolio?type=experience&id=${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Failed to delete experience");
     await fetchPortfolioData();
   };
 
   const handleReorderExperience = async (exp: ExperienceData[]) => {
+    if (data) {
+      setData({ ...data, experience: exp });
+    }
+    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },

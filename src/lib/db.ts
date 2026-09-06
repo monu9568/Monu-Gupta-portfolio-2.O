@@ -27,7 +27,8 @@ const SEED_ADMIN_FILE = path.join(SEED_DATA_DIR, "admin.json");
 let memoryPortfolioData: FullPortfolioData | null = null;
 let memoryMessages: MessageData[] | null = null;
 let memoryAdmin: { username: string; passwordHash: string } | null = null;
-let cachedCloudBlobUrl: string | null = null;
+let lastFetchedBlobUrl: string | null = null;
+let lastFetchedBlobData: FullPortfolioData | null = null;
 
 function ensureDataDir() {
   try {
@@ -49,18 +50,46 @@ function ensureDataDir() {
   }
 }
 
-// Global Cloud Sync via Vercel Blob Storage with deterministic URL tracking
+// Global Cloud Sync via Vercel Blob Storage with timestamped versioning to bypass Edge CDN caching
 export async function syncToCloudStorage(data: FullPortfolioData): Promise<string | null> {
   if (!BLOB_TOKEN) return null;
   try {
-    const blob = await put("portfolio_database/portfolio.json", JSON.stringify(data, null, 2), {
+    const timestamp = Date.now();
+    const versionedBlobPath = `portfolio_database/data_${timestamp}.json`;
+    const blob = await put(versionedBlobPath, JSON.stringify(data, null, 2), {
       access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
       token: BLOB_TOKEN,
     });
     if (blob?.url) {
-      cachedCloudBlobUrl = blob.url;
+      lastFetchedBlobUrl = blob.url;
+      lastFetchedBlobData = data;
+      memoryPortfolioData = data;
+
+      // Also update static portfolio.json with overwrite for backwards compatibility
+      put("portfolio_database/portfolio.json", JSON.stringify(data, null, 2), {
+        access: "public",
+        addRandomSuffix: false,
+        allowOverwrite: true,
+        token: BLOB_TOKEN,
+      }).catch(() => {});
+
+      // Asynchronously clean up older versioned data blobs (keep latest 3)
+      (async () => {
+        try {
+          const { list, del } = await import("@vercel/blob");
+          const listRes = await list({ prefix: "portfolio_database/data_", token: BLOB_TOKEN });
+          const sorted = listRes.blobs.sort(
+            (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+          );
+          if (sorted.length > 3) {
+            const toDelete = sorted.slice(3);
+            for (const item of toDelete) {
+              await del(item.url, { token: BLOB_TOKEN }).catch(() => {});
+            }
+          }
+        } catch {}
+      })();
+
       return blob.url;
     }
   } catch (err) {
@@ -107,20 +136,29 @@ export function getPortfolioData(): FullPortfolioData {
 export async function getPortfolioDataFresh(): Promise<FullPortfolioData> {
   if (BLOB_TOKEN) {
     try {
-      let targetUrl = cachedCloudBlobUrl;
-      if (!targetUrl) {
-        const { list } = await import("@vercel/blob");
-        const listResult = await list({ prefix: "portfolio_database/portfolio.json", token: BLOB_TOKEN });
-        if (listResult.blobs && listResult.blobs.length > 0) {
-          targetUrl = listResult.blobs[0].url;
-          cachedCloudBlobUrl = targetUrl;
-        } else {
-          // Fallback direct URL pattern
-          targetUrl = "https://wocktcd4v9eovljz.public.blob.vercel-storage.com/portfolio_database/portfolio.json";
+      const { list } = await import("@vercel/blob");
+      const listResult = await list({ prefix: "portfolio_database/data_", token: BLOB_TOKEN });
+      let targetUrl: string | null = null;
+
+      if (listResult.blobs && listResult.blobs.length > 0) {
+        const sorted = listResult.blobs.sort(
+          (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+        );
+        targetUrl = sorted[0].url;
+      } else {
+        // Fallback legacy check
+        const legacyList = await list({ prefix: "portfolio_database/portfolio.json", token: BLOB_TOKEN });
+        if (legacyList.blobs && legacyList.blobs.length > 0) {
+          targetUrl = legacyList.blobs[0].url;
         }
       }
 
       if (targetUrl) {
+        // If this exact blob URL was already fetched and stored in memory, return it instantly
+        if (targetUrl === lastFetchedBlobUrl && lastFetchedBlobData) {
+          return lastFetchedBlobData;
+        }
+
         const res = await fetch(`${targetUrl}${targetUrl.includes("?") ? "&" : "?"}t=${Date.now()}`, {
           cache: "no-store",
           headers: { "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate" },
@@ -135,6 +173,8 @@ export async function getPortfolioDataFresh(): Promise<FullPortfolioData> {
               about: { ...defaultPortfolioData.about, ...cloudData.about },
               settings: { ...defaultPortfolioData.settings, ...cloudData.settings },
             };
+            lastFetchedBlobUrl = targetUrl;
+            lastFetchedBlobData = memoryPortfolioData;
             try {
               ensureDataDir();
               fs.writeFileSync(DATA_FILE, JSON.stringify(memoryPortfolioData, null, 2), "utf-8");
@@ -152,6 +192,7 @@ export async function getPortfolioDataFresh(): Promise<FullPortfolioData> {
 
 export async function savePortfolioData(data: FullPortfolioData): Promise<void> {
   memoryPortfolioData = data;
+  lastFetchedBlobData = data;
   ensureDataDir();
   try {
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
