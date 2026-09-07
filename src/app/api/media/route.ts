@@ -16,9 +16,7 @@ if (process.env.CLOUDINARY_URL || (process.env.CLOUDINARY_CLOUD_NAME && process.
   });
 }
 
-const BLOB_TOKEN =
-  process.env.BLOB_READ_WRITE_TOKEN ||
-  "vercel_blob_rw_WOcKtcD4V9eOVLjZ_R2ISZzTvebeG7nthMXsiT6LfOKw5CP";
+const BLOB_TOKEN = (process.env.BLOB_READ_WRITE_TOKEN || "").trim();
 
 const HAS_VERCEL_BLOB = Boolean(BLOB_TOKEN);
 const HAS_CLOUDINARY = Boolean(

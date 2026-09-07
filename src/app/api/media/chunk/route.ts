@@ -5,9 +5,7 @@ import os from "os";
 import { put } from "@vercel/blob";
 import { verifySessionToken } from "@/lib/auth";
 
-const BLOB_TOKEN =
-  process.env.BLOB_READ_WRITE_TOKEN ||
-  "vercel_blob_rw_WOcKtcD4V9eOVLjZ_R2ISZzTvebeG7nthMXsiT6LfOKw5CP";
+const BLOB_TOKEN = (process.env.BLOB_READ_WRITE_TOKEN || "").trim();
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;

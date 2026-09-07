@@ -5,6 +5,8 @@ import {
   updateHero,
   updateAbout,
   updateSettings,
+  saveProject,
+  deleteProject,
   saveSkill,
   deleteSkill,
   reorderSkills,
@@ -57,6 +59,9 @@ export async function PUT(req: NextRequest) {
     } else if (section === "settings") {
       const updated = await updateSettings(data);
       responsePayload = { success: true, settings: updated };
+    } else if (section === "project") {
+      const updated = await saveProject(data);
+      responsePayload = { success: true, project: updated };
     } else if (section === "skill") {
       const updated = await saveSkill(data);
       responsePayload = { success: true, skill: updated };
@@ -109,7 +114,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Missing id or type" }, { status: 400, headers: NO_CACHE_HEADERS });
     }
 
-    if (type === "skill") {
+    if (type === "project") {
+      await deleteProject(id);
+    } else if (type === "skill") {
       await deleteSkill(id);
     } else if (type === "experience") {
       await deleteExperience(id);

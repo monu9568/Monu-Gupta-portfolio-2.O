@@ -15,9 +15,7 @@ import {
 import { defaultPortfolioData } from "./defaultData";
 import { hashPassword } from "./auth";
 
-const BLOB_TOKEN =
-  process.env.BLOB_READ_WRITE_TOKEN ||
-  "vercel_blob_rw_WOcKtcD4V9eOVLjZ_R2ISZzTvebeG7nthMXsiT6LfOKw5CP";
+const BLOB_TOKEN = (process.env.BLOB_READ_WRITE_TOKEN || "").trim();
 
 const IS_SERVERLESS = Boolean(
   process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === "production"
@@ -73,75 +71,54 @@ function persistLocalDisk(data: FullPortfolioData) {
   try {
     ensureDataDir();
     fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
-    if (!IS_SERVERLESS && fs.existsSync(SEED_DATA_FILE)) {
-      fs.writeFileSync(SEED_DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+    if (fs.existsSync(SEED_DATA_FILE)) {
+      try {
+        fs.writeFileSync(SEED_DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
+      } catch {}
     }
   } catch (err) {
     console.warn("Local disk persist notice:", err);
   }
 }
 
-// Write an individual isolated section to cloud storage
+// Write an individual isolated section to cloud storage if a valid token is provided
 async function syncSectionToCloud<T>(sectionName: string, sectionData: T): Promise<string | null> {
-  // 1. Primary: Vercel Blob (if active and not suspended)
-  if (BLOB_TOKEN) {
-    try {
-      const timestamp = Date.now();
-      const versionedPath = `portfolio_database/sections/${sectionName}_${timestamp}.json`;
-      const blob = await put(versionedPath, JSON.stringify(sectionData, null, 2), {
-        access: "public",
-        token: BLOB_TOKEN,
-      });
+  if (!BLOB_TOKEN) return null;
 
-      if (blob?.url) {
-        sectionBlobUrls[sectionName] = blob.url;
-
-        // Clean up older blobs for this section in the background (keep latest 3)
-        (async () => {
-          try {
-            const listRes = await list({
-              prefix: `portfolio_database/sections/${sectionName}_`,
-              token: BLOB_TOKEN,
-            });
-            const sorted = listRes.blobs.sort(
-              (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
-            );
-            if (sorted.length > 3) {
-              for (const item of sorted.slice(3)) {
-                await del(item.url, { token: BLOB_TOKEN }).catch(() => {});
-              }
-            }
-          } catch {}
-        })();
-
-        return blob.url;
-      }
-    } catch (err: any) {
-      console.warn(`Vercel Blob sync notice for section ${sectionName}:`, err?.message);
-    }
-  }
-
-  // 2. Resilient Direct Cloud Storage Fallback
+  // 1. Primary: Vercel Blob (if active token provided by user)
   try {
-    const formData = new FormData();
-    formData.append("reqtype", "fileupload");
-    const jsonBlob = new Blob([JSON.stringify(sectionData, null, 2)], { type: "application/json" });
-    formData.append("fileToUpload", jsonBlob, `${sectionName}_${Date.now()}.json`);
-
-    const res = await fetch("https://catbox.moe/user/api.php", {
-      method: "POST",
-      body: formData,
-      headers: { "User-Agent": "Mozilla/5.0 (Portfolio-DB-Sync)" },
+    const timestamp = Date.now();
+    const versionedPath = `portfolio_database/sections/${sectionName}_${timestamp}.json`;
+    const blob = await put(versionedPath, JSON.stringify(sectionData, null, 2), {
+      access: "public",
+      token: BLOB_TOKEN,
     });
-    if (res.ok) {
-      const cloudUrl = (await res.text()).trim();
-      if (cloudUrl.startsWith("http://") || cloudUrl.startsWith("https://")) {
-        sectionBlobUrls[sectionName] = cloudUrl;
-        return cloudUrl;
-      }
+
+    if (blob?.url) {
+      sectionBlobUrls[sectionName] = blob.url;
+
+      // Clean up older blobs for this section in the background (keep latest 3)
+      (async () => {
+        try {
+          const listRes = await list({
+            prefix: `portfolio_database/sections/${sectionName}_`,
+            token: BLOB_TOKEN,
+          });
+          const sorted = listRes.blobs.sort(
+            (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+          );
+          if (sorted.length > 3) {
+            for (const item of sorted.slice(3)) {
+              await del(item.url, { token: BLOB_TOKEN }).catch(() => {});
+            }
+          }
+        } catch {}
+      })();
+
+      return blob.url;
     }
-  } catch (cloudErr: any) {
-    console.warn(`Direct cloud sync notice for ${sectionName}:`, cloudErr?.message);
+  } catch (err: any) {
+    console.warn(`Vercel Blob sync notice for section ${sectionName}:`, err?.message);
   }
 
   return null;
@@ -156,9 +133,9 @@ export function getPortfolioData(): FullPortfolioData {
       memoryPortfolioData = {
         ...defaultPortfolioData,
         ...data,
-        hero: { ...defaultPortfolioData.hero, ...data.hero },
-        about: { ...defaultPortfolioData.about, ...data.about },
-        settings: { ...defaultPortfolioData.settings, ...data.settings },
+        hero: { ...defaultPortfolioData.hero, ...(data.hero || {}) },
+        about: { ...defaultPortfolioData.about, ...(data.about || {}) },
+        settings: { ...defaultPortfolioData.settings, ...(data.settings || {}) },
       };
       return memoryPortfolioData;
     }
@@ -168,9 +145,9 @@ export function getPortfolioData(): FullPortfolioData {
       memoryPortfolioData = {
         ...defaultPortfolioData,
         ...data,
-        hero: { ...defaultPortfolioData.hero, ...data.hero },
-        about: { ...defaultPortfolioData.about, ...data.about },
-        settings: { ...defaultPortfolioData.settings, ...data.settings },
+        hero: { ...defaultPortfolioData.hero, ...(data.hero || {}) },
+        about: { ...defaultPortfolioData.about, ...(data.about || {}) },
+        settings: { ...defaultPortfolioData.settings, ...(data.settings || {}) },
       };
       return memoryPortfolioData;
     }
@@ -181,6 +158,8 @@ export function getPortfolioData(): FullPortfolioData {
 }
 
 export async function getPortfolioDataFresh(): Promise<FullPortfolioData> {
+  const current = getPortfolioData();
+
   if (BLOB_TOKEN) {
     try {
       // 1. List all section blobs in one fast query
@@ -214,10 +193,13 @@ export async function getPortfolioDataFresh(): Promise<FullPortfolioData> {
                       headers: { "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate" },
                     });
                     if (res.ok) {
-                      const json = await res.json();
-                      if (json) {
-                        (memoryPortfolioData as any)[sec] = json;
-                        sectionBlobUrls[sec] = latestUrl;
+                      const text = await res.text();
+                      if (text.startsWith("{") || text.startsWith("[")) {
+                        const json = JSON.parse(text);
+                        if (json) {
+                          (memoryPortfolioData as any)[sec] = json;
+                          sectionBlobUrls[sec] = latestUrl;
+                        }
                       }
                     }
                   } catch (fetchErr) {
@@ -236,53 +218,19 @@ export async function getPortfolioDataFresh(): Promise<FullPortfolioData> {
 
         return memoryPortfolioData;
       }
-
-      // 2. Fallback to legacy single monolithic data blob if section blobs don't exist yet
-      const legacyDataList = await list({
-        prefix: "portfolio_database/data_",
-        token: BLOB_TOKEN,
-      });
-
-      if (legacyDataList.blobs && legacyDataList.blobs.length > 0) {
-        const sorted = legacyDataList.blobs.sort(
-          (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
-        );
-        const latestUrl = sorted[0].url;
-        const res = await fetch(`${latestUrl}${latestUrl.includes("?") ? "&" : "?"}t=${Date.now()}`, {
-          cache: "no-store",
-          headers: { "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate" },
-        });
-        if (res.ok) {
-          const cloudData = await res.json();
-          if (cloudData && cloudData.hero) {
-            memoryPortfolioData = {
-              ...defaultPortfolioData,
-              ...cloudData,
-              hero: { ...defaultPortfolioData.hero, ...cloudData.hero },
-              about: { ...defaultPortfolioData.about, ...cloudData.about },
-              settings: { ...defaultPortfolioData.settings, ...cloudData.settings },
-            };
-            persistLocalDisk(memoryPortfolioData);
-
-            // Auto-migrate to isolated section files in background
-            savePortfolioData(memoryPortfolioData).catch(() => {});
-            return memoryPortfolioData;
-          }
-        }
-      }
     } catch (blobErr) {
       console.warn("getPortfolioDataFresh Blob listing warning:", blobErr);
     }
   }
 
-  return getPortfolioData();
+  return current;
 }
 
 export async function savePortfolioData(data: FullPortfolioData): Promise<void> {
   memoryPortfolioData = data;
   persistLocalDisk(data);
 
-  // Sync each isolated section concurrently to cloud storage
+  // Sync each isolated section concurrently to cloud storage if configured
   if (BLOB_TOKEN) {
     await Promise.all([
       syncSectionToCloud("hero", data.hero),
