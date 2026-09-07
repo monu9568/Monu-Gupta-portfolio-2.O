@@ -152,65 +152,105 @@ async function optimizeImageForUpload(file: File): Promise<File> {
   });
 }
 
+async function uploadFileChunked(
+  file: File,
+  category: string,
+  onProgress?: (percent: number) => void
+): Promise<string> {
+  const chunkSize = 2.5 * 1024 * 1024; // 2.5MB per slice (strictly under 4.5MB serverless limit)
+  const totalChunks = Math.ceil(file.size / chunkSize);
+  const uploadId = `upl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+  let finalUrl = "";
+
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * chunkSize;
+    const end = Math.min(file.size, start + chunkSize);
+    const chunkBlob = file.slice(start, end);
+
+    const formData = new FormData();
+    formData.append("chunk", chunkBlob);
+    formData.append("uploadId", uploadId);
+    formData.append("chunkIndex", i.toString());
+    formData.append("totalChunks", totalChunks.toString());
+    formData.append("fileName", file.name);
+    formData.append("category", category);
+    formData.append("contentType", file.type || "application/octet-stream");
+
+    const res = await fetch("/api/media/chunk", {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const errJson = await res.json().catch(() => ({}));
+      throw new Error(errJson.error || `Upload failed on chunk ${i + 1}/${totalChunks}`);
+    }
+
+    const data = await res.json();
+    if (data.complete && data.url) {
+      finalUrl = data.url;
+    }
+
+    if (onProgress) {
+      onProgress(Math.round(((i + 1) / totalChunks) * 100));
+    }
+  }
+
+  if (!finalUrl) {
+    throw new Error("Chunked upload completed without a valid URL.");
+  }
+  return finalUrl;
+}
+
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setUploading(true);
+    setUploadProgress(0);
     const rawFile = files[0];
-    const file = await optimizeImageForUpload(rawFile);
-    const isVideo = file.type.startsWith("video/") || Boolean(file.name.match(/\.(mp4|webm|mov|ogg)$/i));
-    const category = isVideo ? "video" : (selectedCategory === "all" ? "projects" : selectedCategory);
 
     try {
-      let success = false;
+      const file = await optimizeImageForUpload(rawFile);
+      const isVideo = file.type.startsWith("video/") || Boolean(file.name.match(/\.(mp4|webm|mov|ogg)$/i));
+      const category = isVideo ? "video" : (selectedCategory === "all" ? "projects" : selectedCategory);
 
-      // 1. Primary: Direct Client Upload to Vercel Blob (supports up to 250MB)
-      try {
-        const cleanName = `${category}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-        const newBlob = await upload(cleanName, file, {
-          access: "public",
-          handleUploadUrl: "/api/media/upload",
-        });
-        if (newBlob && newBlob.url) {
-          success = true;
-        }
-      } catch (blobErr: any) {
-        console.warn("Direct blob upload notice, trying server route:", blobErr?.message);
-      }
+      let finalUrl = "";
 
-      // 2. Secondary fallback: /api/media POST
-      if (!success) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("category", category);
-
-        const res = await fetch("/api/media", {
-          method: "POST",
-          body: formData,
-        });
-
-        const resText = await res.text();
-        let data: any = {};
+      // 1. If file > 2.5MB or is a video, use Chunked Upload directly
+      if (file.size > 2.5 * 1024 * 1024 || isVideo) {
+        finalUrl = await uploadFileChunked(file, category, (pct) => setUploadProgress(pct));
+      } else {
+        // 2. Direct client upload for small files
         try {
-          data = JSON.parse(resText);
-        } catch {
-          if (resText.includes("413") || resText.includes("Request Entity Too Large")) {
-            throw new Error("File exceeds serverless limit. Please use direct cloud upload.");
+          const cleanName = `${category}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+          const newBlob = await upload(cleanName, file, {
+            access: "public",
+            handleUploadUrl: "/api/media/upload",
+          });
+          if (newBlob && newBlob.url) {
+            finalUrl = newBlob.url;
           }
-          throw new Error("Invalid server response");
+        } catch (blobErr: any) {
+          console.warn("Direct blob upload notice, trying chunked uploader:", blobErr?.message);
         }
 
-        if (!res.ok) throw new Error(data.error || "Upload failed");
+        // 3. Fallback to chunked uploader
+        if (!finalUrl) {
+          finalUrl = await uploadFileChunked(file, category, (pct) => setUploadProgress(pct));
+        }
       }
 
       await fetchAssets();
       notifySync();
-      alert("File uploaded successfully to Media Library!");
+      alert("Asset uploaded successfully to Media Library!");
     } catch (err: any) {
       alert(err.message || "Failed to upload");
     } finally {
       setUploading(false);
+      setUploadProgress(null);
       e.target.value = "";
     }
   };
@@ -255,7 +295,7 @@ async function optimizeImageForUpload(file: File): Promise<File> {
             {uploading ? (
               <>
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                <span>Uploading...</span>
+                <span>{uploadProgress !== null ? `Uploading ${uploadProgress}%...` : "Uploading..."}</span>
               </>
             ) : (
               <>

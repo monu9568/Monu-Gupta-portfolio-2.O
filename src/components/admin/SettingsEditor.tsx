@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Save, Check, KeyRound, Download, Upload, RotateCcw, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Save, Check, KeyRound, Download, Upload, RotateCcw, AlertTriangle, ShieldCheck, Cloud, Database, RefreshCw } from "lucide-react";
 import GlassCard from "../ui/GlassCard";
 import { SiteSettingsData } from "@/lib/types";
 import MediaUploadInput from "./MediaUploadInput";
@@ -22,6 +22,40 @@ export default function SettingsEditor({ settings, onSaveSettings, onRefreshData
       setFormData(settings);
     }
   }, [settings]);
+
+  // Cloud storage diagnostic state
+  const [testingStorage, setTestingStorage] = useState(false);
+  const [storageStatus, setStorageStatus] = useState<{
+    status: "active" | "suspended" | "error";
+    message: string;
+  } | null>(null);
+
+  const handleTestCloudStorage = async () => {
+    setTestingStorage(true);
+    setStorageStatus(null);
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "test_blob_token" }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStorageStatus({ status: "active", message: data.message || "Cloud Blob Storage is active and healthy!" });
+      } else if (data.status === "suspended") {
+        setStorageStatus({
+          status: "suspended",
+          message: "Vercel Blob store token is currently suspended by Vercel (free usage limit reached). Create a free Blob Store in Vercel Dashboard (Storage -> Create Blob) and add your new BLOB_READ_WRITE_TOKEN in your Vercel Project Environment Variables.",
+        });
+      } else {
+        setStorageStatus({ status: "error", message: data.error || "Storage check failed" });
+      }
+    } catch (err: any) {
+      setStorageStatus({ status: "error", message: err.message || "Failed to reach storage API" });
+    } finally {
+      setTestingStorage(false);
+    }
+  };
 
   // Credentials change state
   const [currentPassword, setCurrentPassword] = useState("");
@@ -391,13 +425,65 @@ export default function SettingsEditor({ settings, onSaveSettings, onRefreshData
         <div>
           <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
             <ShieldCheck className="h-4 w-4 text-cyan-400" />
-            <span>Database Backup & Restoration</span>
+            <span>Database Backup & Cloud Sync</span>
           </h3>
           <p className="text-xs text-slate-400 font-light mt-0.5">
-            Export a full snapshot of your portfolio data or restore from a JSON backup.
+            Export a full JSON snapshot of your portfolio or test your cloud storage connectivity.
           </p>
         </div>
 
+        {/* Cloud Storage Connectivity Diagnostics */}
+        <GlassCard className="p-6 border border-white/10 space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Cloud className="h-4 w-4 text-cyan-400" />
+                <h4 className="text-xs font-mono uppercase font-semibold text-white">Vercel Blob Cloud Storage</h4>
+              </div>
+              <p className="text-xs text-slate-400 font-light">
+                Enables permanent global cloud synchronization for all media, video reels, and CMS data across all Vercel servers.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleTestCloudStorage}
+              disabled={testingStorage}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-xs font-mono text-cyan-300 transition-all flex-shrink-0"
+            >
+              {testingStorage ? (
+                <>
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  <span>Testing Connection...</span>
+                </>
+              ) : (
+                <>
+                  <Database className="h-3.5 w-3.5" />
+                  <span>Test Cloud Storage</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          {storageStatus && (
+            <div
+              className={`p-3.5 rounded-xl text-xs leading-relaxed ${
+                storageStatus.status === "active"
+                  ? "bg-emerald-500/10 text-emerald-300 border border-emerald-500/20"
+                  : storageStatus.status === "suspended"
+                  ? "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                  : "bg-rose-500/10 text-rose-300 border border-rose-500/20"
+              }`}
+            >
+              <div className="font-semibold mb-1">
+                {storageStatus.status === "active" ? "🟢 Connected & Active" : storageStatus.status === "suspended" ? "⚠️ Usage Notice" : "❌ Connection Notice"}
+              </div>
+              <div>{storageStatus.message}</div>
+            </div>
+          )}
+        </GlassCard>
+
+        {/* JSON Backup Export & Import */}
         <GlassCard className="p-6 border border-white/10 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
             <button

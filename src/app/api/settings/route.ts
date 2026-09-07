@@ -33,6 +33,34 @@ export async function POST(req: NextRequest) {
     }
 
 
+    if (action === "test_blob_token") {
+      const { token } = await req.json();
+      const testToken = token || process.env.BLOB_READ_WRITE_TOKEN;
+      if (!testToken) {
+        return NextResponse.json({ success: false, error: "No cloud token provided." });
+      }
+      try {
+        const { put } = await import("@vercel/blob");
+        const testPut = await put(`system_health_check_${Date.now()}.txt`, "active", {
+          access: "public",
+          token: testToken,
+        });
+        return NextResponse.json({
+          success: true,
+          status: "active",
+          message: "Vercel Blob Storage is connected and operational!",
+          url: testPut.url,
+        });
+      } catch (err: any) {
+        const isSuspended = err?.message?.includes("suspended") || err?.name?.includes("Suspended");
+        return NextResponse.json({
+          success: false,
+          status: isSuspended ? "suspended" : "error",
+          error: err.message || "Failed to verify cloud storage token.",
+        });
+      }
+    }
+
     if (action === "export_backup") {
       const data = await getPortfolioDataFresh();
       return NextResponse.json({ success: true, backup: data });
