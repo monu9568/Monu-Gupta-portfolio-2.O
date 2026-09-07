@@ -210,7 +210,35 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 3. Fallback: Local development or Serverless optimization
+    // 3. Direct High-Speed Cloud CDN Fallback (Zero-config, up to 200MB)
+    if (!publicUrl) {
+      try {
+        const catboxFormData = new FormData();
+        catboxFormData.append("reqtype", "fileupload");
+        const blob = new Blob([buffer], {
+          type: file.type || (isPdf ? "application/pdf" : isVideo ? "video/mp4" : "image/jpeg"),
+        });
+        catboxFormData.append("fileToUpload", blob, cleanFileName);
+
+        const catboxRes = await fetch("https://catbox.moe/user/api.php", {
+          method: "POST",
+          body: catboxFormData,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Portfolio-Media-Uploader)",
+          },
+        });
+        if (catboxRes.ok) {
+          const resUrl = (await catboxRes.text()).trim();
+          if (resUrl.startsWith("http://") || resUrl.startsWith("https://")) {
+            publicUrl = resUrl;
+          }
+        }
+      } catch (cloudErr: any) {
+        console.warn("Direct Cloud CDN upload error:", cloudErr?.message);
+      }
+    }
+
+    // 4. Fallback: Local development or Serverless optimization
     if (!publicUrl) {
       const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === "production");
 

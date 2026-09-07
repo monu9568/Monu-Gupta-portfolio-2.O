@@ -100,7 +100,35 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 2. Fallback: Local dev environment or safe small data URI
+    // 2. High-speed Direct Cloud CDN Fallback for Videos and Media (Zero-config, up to 200MB)
+    if (!publicUrl) {
+      try {
+        const catboxFormData = new FormData();
+        catboxFormData.append("reqtype", "fileupload");
+        const blob = new Blob([fullBuffer], {
+          type: contentType || (isVideo ? "video/mp4" : isPdf ? "application/pdf" : "image/jpeg"),
+        });
+        catboxFormData.append("fileToUpload", blob, cleanFileName);
+
+        const catboxRes = await fetch("https://catbox.moe/user/api.php", {
+          method: "POST",
+          body: catboxFormData,
+          headers: {
+            "User-Agent": "Mozilla/5.0 (Portfolio-Media-Uploader)",
+          },
+        });
+        if (catboxRes.ok) {
+          const resUrl = (await catboxRes.text()).trim();
+          if (resUrl.startsWith("http://") || resUrl.startsWith("https://")) {
+            publicUrl = resUrl;
+          }
+        }
+      } catch (cloudErr: any) {
+        console.warn("Direct Cloud CDN upload notice:", cloudErr?.message);
+      }
+    }
+
+    // 3. Fallback: Local dev environment or safe small data URI
     if (!publicUrl) {
       const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
       if (!isServerless) {
@@ -122,7 +150,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(
             {
               error:
-                "Vercel Blob cloud storage token is currently suspended. Please update your BLOB_READ_WRITE_TOKEN in Admin Settings or use a direct video URL (e.g. Cloudinary, YouTube, Vimeo, S3).",
+                "Could not upload file to cloud. Please check network connection or update your BLOB_READ_WRITE_TOKEN in Settings.",
             },
             { status: 400, headers: NO_CACHE_HEADERS }
           );
