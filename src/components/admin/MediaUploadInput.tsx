@@ -165,6 +165,8 @@ async function uploadFileChunked(
 }
 
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [showVideoModal, setShowVideoModal] = useState(false);
+  const [pastedVideoUrl, setPastedVideoUrl] = useState("");
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -175,35 +177,54 @@ async function uploadFileChunked(
 
     try {
       const rawFile = files[0];
-      const file = await optimizeImageForUpload(rawFile);
+      const isImg = rawFile.type.startsWith("image/") && !rawFile.type.includes("svg") && !rawFile.type.includes("gif");
+      const isVid = rawFile.type.startsWith("video/") || Boolean(rawFile.name.match(/\.(mp4|webm|mov|ogg|mkv|avi)$/i));
+
+      let file = isImg ? await optimizeImageForUpload(rawFile) : rawFile;
       let finalUrl = "";
 
-      // 1. If file is > 2.5MB (e.g. video/large document), use resilient Chunked Uploader
-      if (file.size > 2.5 * 1024 * 1024) {
-        finalUrl = await uploadFileChunked(file, category, (pct) => setUploadProgress(pct));
-      } else {
-        // 2. Direct Vercel Blob client upload for small/optimized files
-        try {
-          const cleanName = `${category}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-          const newBlob = await upload(cleanName, file, {
-            access: "public",
-            handleUploadUrl: "/api/media/upload",
-          });
-          if (newBlob && newBlob.url) {
-            finalUrl = newBlob.url;
-          }
-        } catch (blobErr: any) {
-          console.warn("Direct blob upload notice, trying server fallback:", blobErr?.message);
+      // 1. Direct Vercel Blob client upload (if store is active, handles up to 500MB directly)
+      try {
+        const cleanName = `${category}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+        const newBlob = await upload(cleanName, file, {
+          access: "public",
+          handleUploadUrl: "/api/media/upload",
+        });
+        if (newBlob && newBlob.url) {
+          finalUrl = newBlob.url;
         }
+      } catch (blobErr: any) {
+        console.warn("Direct blob client upload notice:", blobErr?.message);
+      }
 
-        // 3. Fallback to /api/media POST or chunked
-        if (!finalUrl) {
-          finalUrl = await uploadFileChunked(file, category, (pct) => setUploadProgress(pct));
+      // 2. Direct single-request server upload (works for all optimized images & files under 4MB)
+      if (!finalUrl && file.size <= 4.2 * 1024 * 1024) {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("category", category);
+
+        const res = await fetch("/api/media", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.url) finalUrl = data.url;
         }
+      }
+
+      // 3. If file is a video > 4MB and Vercel Blob token is suspended:
+      if (!finalUrl && isVid) {
+        setShowVideoModal(true);
+        setUploading(false);
+        return;
       }
 
       if (finalUrl) {
         onChange(finalUrl);
+      } else {
+        alert("Upload failed. If uploading a large video (>4MB), please paste a direct video link or update your cloud token in Settings.");
       }
     } catch (err: any) {
       alert(err.message || "Failed to upload file");
@@ -440,6 +461,88 @@ async function uploadFileChunked(
                 className="px-4 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs text-slate-300"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Video Hosting & Direct Link Modal */}
+      {showVideoModal && (
+        <div
+          data-lenis-prevent="true"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl overflow-y-auto"
+        >
+          <div
+            data-lenis-prevent="true"
+            className="relative w-full max-w-lg rounded-3xl bg-[#090b10] border border-cyan-500/30 p-6 shadow-glass-elevated flex flex-col text-left overflow-hidden space-y-4"
+          >
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-2">
+                <Video className="h-5 w-5 text-cyan-400" />
+                <h3 className="text-base font-bold text-white tracking-tight">Video Hosting & Link Assignment</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowVideoModal(false)}
+                className="h-8 w-8 rounded-full bg-white/[0.05] flex items-center justify-center text-slate-400 hover:text-white"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300 font-light leading-relaxed">
+              Because Vercel serverless has a 4.5MB payload limit for direct uploads and your Vercel Blob token is suspended, high-definition videos (&gt;4.5MB) are best assigned via a direct streaming URL or free media host.
+            </p>
+
+            <div className="space-y-2">
+              <label className="block text-xs font-mono uppercase text-cyan-400 font-semibold">
+                Paste Video Stream URL
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={pastedVideoUrl}
+                  onChange={(e) => setPastedVideoUrl(e.target.value)}
+                  placeholder="https://... (MP4, WebM, Cloudinary, Vimeo, YouTube, S3)"
+                  className="w-full pl-8 pr-3 py-2.5 rounded-xl glass-input text-xs font-mono text-white"
+                />
+                <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+              </div>
+              <span className="text-[11px] text-slate-400 font-mono block">
+                Supports direct links from Cloudinary, YouTube, Vimeo, AWS S3, Google Drive, Streamable, Discord CDN, or raw .mp4 files.
+              </span>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 text-xs text-slate-300 space-y-1.5 font-light">
+              <span className="font-semibold text-cyan-300 block">Want unlimited direct video uploads on Vercel?</span>
+              <p className="text-[11px] text-slate-400">
+                1. Open Vercel Dashboard → Storage → Create Free Blob Store.<br/>
+                2. Copy the token and paste it into Vercel Project Settings as <code className="text-cyan-300 font-mono">BLOB_READ_WRITE_TOKEN</code>.
+              </p>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setShowVideoModal(false)}
+                className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs text-slate-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (pastedVideoUrl.trim()) {
+                    onChange(pastedVideoUrl.trim());
+                    setShowVideoModal(false);
+                    setPastedVideoUrl("");
+                  }
+                }}
+                disabled={!pastedVideoUrl.trim()}
+                className="px-5 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 text-slate-950 font-semibold text-xs transition-all shadow-sm"
+              >
+                Apply Video Link
               </button>
             </div>
           </div>
