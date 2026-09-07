@@ -90,21 +90,84 @@ export default function MediaLibrary() {
     }
   };
 
+async function optimizeImageForUpload(file: File): Promise<File> {
+  if (!file.type.startsWith("image/") || file.type.includes("svg") || file.type.includes("gif")) {
+    return file;
+  }
+  if (file.size <= 1.5 * 1024 * 1024) {
+    return file;
+  }
+
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxDimension = 1920;
+
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(file);
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const optimizedFile = new File(
+                [blob],
+                file.name.replace(/\.[^.]+$/, ".webp"),
+                { type: "image/webp" }
+              );
+              resolve(optimizedFile);
+            } else {
+              resolve(file);
+            }
+          },
+          "image/webp",
+          0.85
+        );
+      };
+      img.onerror = () => resolve(file);
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => resolve(file);
+    reader.readAsDataURL(file);
+  });
+}
+
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
     setUploading(true);
-    const file = files[0];
-    const isVideo = file.type.startsWith("video/") || file.name.match(/\.(mp4|webm|mov|ogg)$/i);
+    const rawFile = files[0];
+    const file = await optimizeImageForUpload(rawFile);
+    const isVideo = file.type.startsWith("video/") || Boolean(file.name.match(/\.(mp4|webm|mov|ogg)$/i));
     const category = isVideo ? "video" : (selectedCategory === "all" ? "projects" : selectedCategory);
 
     try {
       let success = false;
 
-      // 1. Try Direct Client Upload to Vercel Blob (supports up to 250MB)
+      // 1. Primary: Direct Client Upload to Vercel Blob (supports up to 250MB)
       try {
-        const cleanName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+        const cleanName = `${category}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
         const newBlob = await upload(cleanName, file, {
           access: "public",
           handleUploadUrl: "/api/media/upload",
@@ -113,10 +176,10 @@ export default function MediaLibrary() {
           success = true;
         }
       } catch (blobErr: any) {
-        console.warn("Direct blob upload bypassed, falling back to server route:", blobErr?.message);
+        console.warn("Direct blob upload notice, trying server route:", blobErr?.message);
       }
 
-      // 2. Fallback to /api/media POST
+      // 2. Secondary fallback: /api/media POST
       if (!success) {
         const formData = new FormData();
         formData.append("file", file);
@@ -133,7 +196,7 @@ export default function MediaLibrary() {
           data = JSON.parse(resText);
         } catch {
           if (resText.includes("413") || resText.includes("Request Entity Too Large")) {
-            throw new Error("File exceeds serverless limit. Please connect Vercel Blob.");
+            throw new Error("File exceeds serverless limit. Please use direct cloud upload.");
           }
           throw new Error("Invalid server response");
         }

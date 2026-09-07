@@ -1,6 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { getPortfolioData, getPortfolioDataFresh, updateHero, updateAbout, updateSettings, saveSkill, deleteSkill, saveExperience, deleteExperience, savePortfolioData } from "@/lib/db";
+import {
+  getPortfolioDataFresh,
+  updateHero,
+  updateAbout,
+  updateSettings,
+  saveSkill,
+  deleteSkill,
+  reorderSkills,
+  saveExperience,
+  deleteExperience,
+  reorderExperience,
+  reorderProjects,
+  savePortfolioData,
+} from "@/lib/db";
 import { verifySessionToken } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -51,26 +64,14 @@ export async function PUT(req: NextRequest) {
       const updated = await saveExperience(data);
       responsePayload = { success: true, experience: updated };
     } else if (section === "reorder_projects") {
-      const freshData = await getPortfolioDataFresh();
-      await savePortfolioData({
-        ...freshData,
-        projects: data.map((p: any, idx: number) => ({ ...p, order: idx + 1 })),
-      });
-      responsePayload = { success: true };
+      const updated = await reorderProjects(data);
+      responsePayload = { success: true, projects: updated };
     } else if (section === "reorder_skills") {
-      const freshData = await getPortfolioDataFresh();
-      await savePortfolioData({
-        ...freshData,
-        skills: data.map((s: any, idx: number) => ({ ...s, order: idx + 1 })),
-      });
-      responsePayload = { success: true };
+      const updated = await reorderSkills(data);
+      responsePayload = { success: true, skills: updated };
     } else if (section === "reorder_experience") {
-      const freshData = await getPortfolioDataFresh();
-      await savePortfolioData({
-        ...freshData,
-        experience: data.map((e: any, idx: number) => ({ ...e, order: idx + 1 })),
-      });
-      responsePayload = { success: true };
+      const updated = await reorderExperience(data);
+      responsePayload = { success: true, experience: updated };
     } else if (section === "full") {
       await savePortfolioData(data);
       responsePayload = { success: true };

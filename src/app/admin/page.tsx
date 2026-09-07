@@ -187,17 +187,28 @@ export default function AdminPage() {
   };
 
   const handleSaveProject = async (proj: Partial<ProjectData>) => {
-    notifyFrontendSync();
     const res = await fetch("/api/projects", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(proj),
     });
     if (!res.ok) throw new Error("Failed to save project");
+    const json = await res.json();
+    if (json.project && data) {
+      const idx = data.projects.findIndex((p) => p.id === json.project.id);
+      const updatedProjects = idx !== -1
+        ? data.projects.map((p, i) => (i === idx ? json.project : p))
+        : [...data.projects, json.project];
+      setData({ ...data, projects: updatedProjects });
+    }
+    notifyFrontendSync();
     await fetchPortfolioData();
   };
 
   const handleDeleteProject = async (id: string) => {
+    if (data) {
+      setData({ ...data, projects: data.projects.filter((p) => p.id !== id) });
+    }
     notifyFrontendSync();
     const res = await fetch(`/api/projects?id=${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Failed to delete project");
@@ -219,17 +230,28 @@ export default function AdminPage() {
   };
 
   const handleSaveSkill = async (skill: Partial<SkillData>) => {
-    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ section: "skill", data: skill }),
     });
     if (!res.ok) throw new Error("Failed to save skill");
+    const json = await res.json();
+    if (json.skill && data) {
+      const idx = data.skills.findIndex((s) => s.id === json.skill.id);
+      const updatedSkills = idx !== -1
+        ? data.skills.map((s, i) => (i === idx ? json.skill : s))
+        : [...data.skills, json.skill];
+      setData({ ...data, skills: updatedSkills });
+    }
+    notifyFrontendSync();
     await fetchPortfolioData();
   };
 
   const handleDeleteSkill = async (id: string) => {
+    if (data) {
+      setData({ ...data, skills: data.skills.filter((s) => s.id !== id) });
+    }
     notifyFrontendSync();
     const res = await fetch(`/api/portfolio?type=skill&id=${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Failed to delete skill");
@@ -251,17 +273,28 @@ export default function AdminPage() {
   };
 
   const handleSaveExperience = async (exp: Partial<ExperienceData>) => {
-    notifyFrontendSync();
     const res = await fetch("/api/portfolio", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ section: "experience", data: exp }),
     });
     if (!res.ok) throw new Error("Failed to save experience");
+    const json = await res.json();
+    if (json.experience && data) {
+      const idx = data.experience.findIndex((e) => e.id === json.experience.id);
+      const updatedExp = idx !== -1
+        ? data.experience.map((e, i) => (i === idx ? json.experience : e))
+        : [...data.experience, json.experience];
+      setData({ ...data, experience: updatedExp });
+    }
+    notifyFrontendSync();
     await fetchPortfolioData();
   };
 
   const handleDeleteExperience = async (id: string) => {
+    if (data) {
+      setData({ ...data, experience: data.experience.filter((e) => e.id !== id) });
+    }
     notifyFrontendSync();
     const res = await fetch(`/api/portfolio?type=experience&id=${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Failed to delete experience");
