@@ -114,59 +114,47 @@ async function optimizeImageForUpload(file: File): Promise<File> {
   });
 }
 
-async function uploadFileChunked(
-  file: File,
-  category: string,
+function uploadWithProgress(
+  url: string,
+  formData: FormData,
   onProgress?: (percent: number) => void
-): Promise<string> {
-  const chunkSize = 2.5 * 1024 * 1024; // 2.5MB per slice (strictly under 4.5MB serverless limit)
-  const totalChunks = Math.ceil(file.size / chunkSize);
-  const uploadId = `upl_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  let finalUrl = "";
+): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
 
-  for (let i = 0; i < totalChunks; i++) {
-    const start = i * chunkSize;
-    const end = Math.min(file.size, start + chunkSize);
-    const chunkBlob = file.slice(start, end);
-
-    const formData = new FormData();
-    formData.append("chunk", chunkBlob);
-    formData.append("uploadId", uploadId);
-    formData.append("chunkIndex", i.toString());
-    formData.append("totalChunks", totalChunks.toString());
-    formData.append("fileName", file.name);
-    formData.append("category", category);
-    formData.append("contentType", file.type || "application/octet-stream");
-
-    const res = await fetch("/api/media/chunk", {
-      method: "POST",
-      body: formData,
-    });
-
-    if (!res.ok) {
-      const errJson = await res.json().catch(() => ({}));
-      throw new Error(errJson.error || `Upload failed on chunk ${i + 1}/${totalChunks}`);
+    if (xhr.upload && onProgress) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const pct = Math.round((e.loaded / e.total) * 100);
+          onProgress(pct);
+        }
+      };
     }
 
-    const data = await res.json();
-    if (data.complete && data.url) {
-      finalUrl = data.url;
-    }
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          resolve({ url: xhr.responseText });
+        }
+      } else {
+        try {
+          const err = JSON.parse(xhr.responseText);
+          reject(new Error(err.error || `Upload failed (status ${xhr.status})`));
+        } catch {
+          reject(new Error(`Upload failed with status ${xhr.status}`));
+        }
+      }
+    };
 
-    if (onProgress) {
-      onProgress(Math.round(((i + 1) / totalChunks) * 100));
-    }
-  }
-
-  if (!finalUrl) {
-    throw new Error("Chunked upload completed without a valid URL.");
-  }
-  return finalUrl;
+    xhr.onerror = () => reject(new Error("Network error during upload."));
+    xhr.send(formData);
+  });
 }
 
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [showVideoModal, setShowVideoModal] = useState(false);
-  const [pastedVideoUrl, setPastedVideoUrl] = useState("");
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -183,48 +171,36 @@ async function uploadFileChunked(
       let file = isImg ? await optimizeImageForUpload(rawFile) : rawFile;
       let finalUrl = "";
 
-      // 1. Direct Vercel Blob client upload (if store is active, handles up to 500MB directly)
-      try {
-        const cleanName = `${category}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
-        const newBlob = await upload(cleanName, file, {
-          access: "public",
-          handleUploadUrl: "/api/media/upload",
-        });
-        if (newBlob && newBlob.url) {
-          finalUrl = newBlob.url;
-        }
-      } catch (blobErr: any) {
-        console.warn("Direct blob client upload notice:", blobErr?.message);
-      }
-
-      // 2. Direct single-request server upload (works for all optimized images & files under 4MB)
-      if (!finalUrl && file.size <= 4.2 * 1024 * 1024) {
+      // 1. If it's a video or large file (>4MB), stream directly via Edge Streaming route
+      if (isVid || file.size > 4 * 1024 * 1024) {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("category", category);
 
-        const res = await fetch("/api/media", {
-          method: "POST",
-          body: formData,
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          if (data.url) finalUrl = data.url;
+        const data = await uploadWithProgress("/api/media/stream", formData, (pct) =>
+          setUploadProgress(pct)
+        );
+        if (data && data.url) {
+          finalUrl = data.url;
         }
-      }
+      } else {
+        // 2. Standard direct upload for images and small assets
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("category", category);
 
-      // 3. If file is a video > 4MB and Vercel Blob token is suspended:
-      if (!finalUrl && isVid) {
-        setShowVideoModal(true);
-        setUploading(false);
-        return;
+        const data = await uploadWithProgress("/api/media", formData, (pct) =>
+          setUploadProgress(pct)
+        );
+        if (data && data.url) {
+          finalUrl = data.url;
+        }
       }
 
       if (finalUrl) {
         onChange(finalUrl);
       } else {
-        alert("Upload failed. If uploading a large video (>4MB), please paste a direct video link or update your cloud token in Settings.");
+        throw new Error("Could not process upload. Please try again.");
       }
     } catch (err: any) {
       alert(err.message || "Failed to upload file");
@@ -461,88 +437,6 @@ async function uploadFileChunked(
                 className="px-4 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs text-slate-300"
               >
                 Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Video Hosting & Direct Link Modal */}
-      {showVideoModal && (
-        <div
-          data-lenis-prevent="true"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl overflow-y-auto"
-        >
-          <div
-            data-lenis-prevent="true"
-            className="relative w-full max-w-lg rounded-3xl bg-[#090b10] border border-cyan-500/30 p-6 shadow-glass-elevated flex flex-col text-left overflow-hidden space-y-4"
-          >
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <div className="flex items-center gap-2">
-                <Video className="h-5 w-5 text-cyan-400" />
-                <h3 className="text-base font-bold text-white tracking-tight">Video Hosting & Link Assignment</h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowVideoModal(false)}
-                className="h-8 w-8 rounded-full bg-white/[0.05] flex items-center justify-center text-slate-400 hover:text-white"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <p className="text-xs text-slate-300 font-light leading-relaxed">
-              Because Vercel serverless has a 4.5MB payload limit for direct uploads and your Vercel Blob token is suspended, high-definition videos (&gt;4.5MB) are best assigned via a direct streaming URL or free media host.
-            </p>
-
-            <div className="space-y-2">
-              <label className="block text-xs font-mono uppercase text-cyan-400 font-semibold">
-                Paste Video Stream URL
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={pastedVideoUrl}
-                  onChange={(e) => setPastedVideoUrl(e.target.value)}
-                  placeholder="https://... (MP4, WebM, Cloudinary, Vimeo, YouTube, S3)"
-                  className="w-full pl-8 pr-3 py-2.5 rounded-xl glass-input text-xs font-mono text-white"
-                />
-                <Link2 className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
-              </div>
-              <span className="text-[11px] text-slate-400 font-mono block">
-                Supports direct links from Cloudinary, YouTube, Vimeo, AWS S3, Google Drive, Streamable, Discord CDN, or raw .mp4 files.
-              </span>
-            </div>
-
-            <div className="p-3.5 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 text-xs text-slate-300 space-y-1.5 font-light">
-              <span className="font-semibold text-cyan-300 block">Want unlimited direct video uploads on Vercel?</span>
-              <p className="text-[11px] text-slate-400">
-                1. Open Vercel Dashboard → Storage → Create Free Blob Store.<br/>
-                2. Copy the token and paste it into Vercel Project Settings as <code className="text-cyan-300 font-mono">BLOB_READ_WRITE_TOKEN</code>.
-              </p>
-            </div>
-
-            <div className="pt-2 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowVideoModal(false)}
-                className="px-4 py-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs text-slate-300"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (pastedVideoUrl.trim()) {
-                    onChange(pastedVideoUrl.trim());
-                    setShowVideoModal(false);
-                    setPastedVideoUrl("");
-                  }
-                }}
-                disabled={!pastedVideoUrl.trim()}
-                className="px-5 py-2 rounded-xl bg-cyan-400 hover:bg-cyan-300 disabled:opacity-40 text-slate-950 font-semibold text-xs transition-all shadow-sm"
-              >
-                Apply Video Link
               </button>
             </div>
           </div>
