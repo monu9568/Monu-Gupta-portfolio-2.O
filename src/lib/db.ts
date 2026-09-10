@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import os from "os";
-import { put, list, del } from "@vercel/blob";
+import { v2 as cloudinary } from "cloudinary";
 import {
   FullPortfolioData,
   HeroData,
@@ -15,7 +15,18 @@ import {
 import { defaultPortfolioData } from "./defaultData";
 import { hashPassword } from "./auth";
 
-const BLOB_TOKEN = (process.env.BLOB_READ_WRITE_TOKEN || "").trim();
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "j2j07xwi";
+const API_KEY = process.env.CLOUDINARY_API_KEY || "483862826493582";
+const API_SECRET = process.env.CLOUDINARY_API_SECRET || "dffM_E_mH8CsGajHlHvDU7UJRDE";
+
+cloudinary.config({
+  cloud_name: CLOUD_NAME,
+  api_key: API_KEY,
+  api_secret: API_SECRET,
+  secure: true,
+});
+
+const HAS_CLOUDINARY = Boolean(CLOUD_NAME && API_KEY && API_SECRET);
 
 const IS_SERVERLESS = Boolean(
   process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME || process.env.NODE_ENV === "production"
@@ -81,44 +92,36 @@ function persistLocalDisk(data: FullPortfolioData) {
   }
 }
 
-// Write an individual isolated section to cloud storage if a valid token is provided
 async function syncSectionToCloud<T>(sectionName: string, sectionData: T): Promise<string | null> {
-  if (!BLOB_TOKEN) return null;
+  if (!HAS_CLOUDINARY) return null;
 
-  // 1. Primary: Vercel Blob (if active token provided by user)
   try {
-    const timestamp = Date.now();
-    const versionedPath = `portfolio_database/sections/${sectionName}_${timestamp}.json`;
-    const blob = await put(versionedPath, JSON.stringify(sectionData, null, 2), {
-      access: "public",
-      token: BLOB_TOKEN,
+    // We synchronize the ENTIRE state so there's a single source of truth across all serverless nodes
+    const jsonStr = JSON.stringify(memoryPortfolioData, null, 2);
+    const buffer = Buffer.from(jsonStr);
+
+    const uploadResult = await new Promise<any>((resolve, reject) => {
+      const uploadStream = cloudinary.uploader.upload_stream(
+        {
+          folder: `portfolio_database`,
+          resource_type: "raw",
+          public_id: `portfolio_latest.json`,
+          overwrite: true,
+          invalidate: true,
+        },
+        (err, result) => {
+          if (err) reject(err);
+          else resolve(result);
+        }
+      );
+      uploadStream.end(buffer);
     });
 
-    if (blob?.url) {
-      sectionBlobUrls[sectionName] = blob.url;
-
-      // Clean up older blobs for this section in the background (keep latest 3)
-      (async () => {
-        try {
-          const listRes = await list({
-            prefix: `portfolio_database/sections/${sectionName}_`,
-            token: BLOB_TOKEN,
-          });
-          const sorted = listRes.blobs.sort(
-            (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
-          );
-          if (sorted.length > 3) {
-            for (const item of sorted.slice(3)) {
-              await del(item.url, { token: BLOB_TOKEN }).catch(() => {});
-            }
-          }
-        } catch {}
-      })();
-
-      return blob.url;
+    if (uploadResult?.secure_url) {
+      return uploadResult.secure_url;
     }
   } catch (err: any) {
-    console.warn(`Vercel Blob sync notice for section ${sectionName}:`, err?.message);
+    console.warn(`Cloudinary DB sync notice:`, err?.message);
   }
 
   return null;
@@ -160,66 +163,45 @@ export function getPortfolioData(): FullPortfolioData {
 export async function getPortfolioDataFresh(): Promise<FullPortfolioData> {
   const current = getPortfolioData();
 
-  if (BLOB_TOKEN) {
+  if (HAS_CLOUDINARY) {
     try {
-      // 1. List all section blobs in one fast query
-      const listResult = await list({
-        prefix: "portfolio_database/sections/",
-        token: BLOB_TOKEN,
+      // Use Admin API to get the latest versioned URL, completely bypassing CDN caches!
+      const result = await cloudinary.api.resource("portfolio_database/portfolio_latest.json", {
+        resource_type: "raw"
       });
-
-      if (listResult.blobs && listResult.blobs.length > 0) {
-        const sections = ["hero", "about", "projects", "skills", "experience", "settings"];
-        const fetchTasks: Promise<void>[] = [];
-
-        for (const sec of sections) {
-          const matchingBlobs = listResult.blobs.filter((b) =>
-            b.pathname.startsWith(`portfolio_database/sections/${sec}_`)
-          );
-
-          if (matchingBlobs.length > 0) {
-            const sorted = matchingBlobs.sort(
-              (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
-            );
-            const latestUrl = sorted[0].url;
-
-            // Only fetch if this section's blob URL has changed
-            if (latestUrl !== sectionBlobUrls[sec] || !(memoryPortfolioData as any)[sec]) {
-              fetchTasks.push(
-                (async () => {
-                  try {
-                    const res = await fetch(`${latestUrl}${latestUrl.includes("?") ? "&" : "?"}t=${Date.now()}`, {
-                      cache: "no-store",
-                      headers: { "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate" },
-                    });
-                    if (res.ok) {
-                      const text = await res.text();
-                      if (text.startsWith("{") || text.startsWith("[")) {
-                        const json = JSON.parse(text);
-                        if (json) {
-                          (memoryPortfolioData as any)[sec] = json;
-                          sectionBlobUrls[sec] = latestUrl;
-                        }
-                      }
-                    }
-                  } catch (fetchErr) {
-                    console.warn(`Failed to fetch section ${sec} blob:`, fetchErr);
-                  }
-                })()
-              );
+      
+      if (result && result.secure_url) {
+        const latestUrl = result.secure_url;
+        
+        // Fetch the actual JSON
+        const res = await fetch(`${latestUrl}?t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate" },
+        });
+        
+        if (res.ok) {
+          const text = await res.text();
+          if (text.startsWith("{")) {
+            const json = JSON.parse(text);
+            if (json && json.hero) {
+              memoryPortfolioData = {
+                ...defaultPortfolioData,
+                ...json,
+                hero: { ...defaultPortfolioData.hero, ...(json.hero || {}) },
+                about: { ...defaultPortfolioData.about, ...(json.about || {}) },
+                settings: { ...defaultPortfolioData.settings, ...(json.settings || {}) },
+              };
+              persistLocalDisk(memoryPortfolioData);
+              return memoryPortfolioData;
             }
           }
         }
-
-        if (fetchTasks.length > 0) {
-          await Promise.all(fetchTasks);
-          persistLocalDisk(memoryPortfolioData);
-        }
-
-        return memoryPortfolioData;
       }
-    } catch (blobErr) {
-      console.warn("getPortfolioDataFresh Blob listing warning:", blobErr);
+    } catch (err: any) {
+      // If resource not found (404), it just hasn't been uploaded yet, which is fine.
+      if (err?.http_code !== 404 && err?.error?.http_code !== 404) {
+        console.warn("getPortfolioDataFresh Cloudinary warning:", err?.message || err);
+      }
     }
   }
 
@@ -230,16 +212,9 @@ export async function savePortfolioData(data: FullPortfolioData): Promise<void> 
   memoryPortfolioData = data;
   persistLocalDisk(data);
 
-  // Sync each isolated section concurrently to cloud storage if configured
-  if (BLOB_TOKEN) {
-    await Promise.all([
-      syncSectionToCloud("hero", data.hero),
-      syncSectionToCloud("about", data.about),
-      syncSectionToCloud("projects", data.projects),
-      syncSectionToCloud("skills", data.skills),
-      syncSectionToCloud("experience", data.experience),
-      syncSectionToCloud("settings", data.settings),
-    ]);
+  // Sync to Cloudinary if configured
+  if (HAS_CLOUDINARY) {
+    await syncSectionToCloud("full", data);
   }
 }
 
@@ -248,41 +223,34 @@ export async function savePortfolioData(data: FullPortfolioData): Promise<void> 
 // ----------------------------------------------------------------------------
 
 export async function updateHero(hero: Partial<HeroData>): Promise<HeroData> {
-  // Ensure we have current memory state
-  if (!memoryPortfolioData?.hero) {
-    await getPortfolioDataFresh();
-  }
-  const updatedHero: HeroData = { ...memoryPortfolioData.hero, ...hero };
-  memoryPortfolioData.hero = updatedHero;
+  const current = await getPortfolioDataFresh();
+  const updatedHero: HeroData = { ...current.hero, ...hero };
+  current.hero = updatedHero;
+  memoryPortfolioData = current;
   persistLocalDisk(memoryPortfolioData);
 
-  // Sync ONLY hero to cloud
   await syncSectionToCloud("hero", updatedHero);
   return updatedHero;
 }
 
 export async function updateAbout(about: Partial<AboutData>): Promise<AboutData> {
-  if (!memoryPortfolioData?.about) {
-    await getPortfolioDataFresh();
-  }
-  const updatedAbout: AboutData = { ...memoryPortfolioData.about, ...about };
-  memoryPortfolioData.about = updatedAbout;
+  const current = await getPortfolioDataFresh();
+  const updatedAbout: AboutData = { ...current.about, ...about };
+  current.about = updatedAbout;
+  memoryPortfolioData = current;
   persistLocalDisk(memoryPortfolioData);
 
-  // Sync ONLY about to cloud
   await syncSectionToCloud("about", updatedAbout);
   return updatedAbout;
 }
 
 export async function updateSettings(settings: Partial<SiteSettingsData>): Promise<SiteSettingsData> {
-  if (!memoryPortfolioData?.settings) {
-    await getPortfolioDataFresh();
-  }
-  const updatedSettings: SiteSettingsData = { ...memoryPortfolioData.settings, ...settings };
-  memoryPortfolioData.settings = updatedSettings;
+  const current = await getPortfolioDataFresh();
+  const updatedSettings: SiteSettingsData = { ...current.settings, ...settings };
+  current.settings = updatedSettings;
+  memoryPortfolioData = current;
   persistLocalDisk(memoryPortfolioData);
 
-  // Sync ONLY settings to cloud
   await syncSectionToCloud("settings", updatedSettings);
   return updatedSettings;
 }
@@ -296,12 +264,8 @@ export function getProjects(): ProjectData[] {
 }
 
 export async function saveProject(project: Partial<ProjectData> & { id?: string }): Promise<ProjectData> {
-  // Fresh load if memory projects uninitialized
-  if (!memoryPortfolioData.projects || memoryPortfolioData.projects.length === 0) {
-    await getPortfolioDataFresh();
-  }
-
-  const projects = [...(memoryPortfolioData.projects || [])];
+  const current = await getPortfolioDataFresh();
+  const projects = [...(current.projects || [])];
   let updatedProject: ProjectData;
 
   if (project.id) {
@@ -361,7 +325,8 @@ export async function saveProject(project: Partial<ProjectData> & { id?: string 
     projects.push(updatedProject);
   }
 
-  memoryPortfolioData.projects = projects;
+  current.projects = projects;
+  memoryPortfolioData = current;
   persistLocalDisk(memoryPortfolioData);
 
   // Sync ONLY projects to cloud
@@ -370,11 +335,13 @@ export async function saveProject(project: Partial<ProjectData> & { id?: string 
 }
 
 export async function deleteProject(id: string): Promise<boolean> {
-  const initialLen = (memoryPortfolioData.projects || []).length;
-  const filtered = (memoryPortfolioData.projects || []).filter((p) => p.id !== id);
+  const current = await getPortfolioDataFresh();
+  const initialLen = (current.projects || []).length;
+  const filtered = (current.projects || []).filter((p) => p.id !== id);
 
   if (filtered.length !== initialLen) {
-    memoryPortfolioData.projects = filtered;
+    current.projects = filtered;
+    memoryPortfolioData = current;
     persistLocalDisk(memoryPortfolioData);
     await syncSectionToCloud("projects", filtered);
     return true;
@@ -383,8 +350,10 @@ export async function deleteProject(id: string): Promise<boolean> {
 }
 
 export async function reorderProjects(orderedProjects: ProjectData[]): Promise<ProjectData[]> {
+  const current = await getPortfolioDataFresh();
   const updated = orderedProjects.map((p, idx) => ({ ...p, order: idx + 1 }));
-  memoryPortfolioData.projects = updated;
+  current.projects = updated;
+  memoryPortfolioData = current;
   persistLocalDisk(memoryPortfolioData);
   await syncSectionToCloud("projects", updated);
   return updated;
@@ -399,11 +368,8 @@ export function getSkills(): SkillData[] {
 }
 
 export async function saveSkill(skill: Partial<SkillData> & { id?: string }): Promise<SkillData> {
-  if (!memoryPortfolioData.skills || memoryPortfolioData.skills.length === 0) {
-    await getPortfolioDataFresh();
-  }
-
-  const skills = [...(memoryPortfolioData.skills || [])];
+  const current = await getPortfolioDataFresh();
+  const skills = [...(current.skills || [])];
   let updatedSkill: SkillData;
 
   if (skill.id) {
@@ -438,7 +404,8 @@ export async function saveSkill(skill: Partial<SkillData> & { id?: string }): Pr
     skills.push(updatedSkill);
   }
 
-  memoryPortfolioData.skills = skills;
+  current.skills = skills;
+  memoryPortfolioData = current;
   persistLocalDisk(memoryPortfolioData);
 
   // Sync ONLY skills to cloud
@@ -447,11 +414,13 @@ export async function saveSkill(skill: Partial<SkillData> & { id?: string }): Pr
 }
 
 export async function deleteSkill(id: string): Promise<boolean> {
-  const initialLen = (memoryPortfolioData.skills || []).length;
-  const filtered = (memoryPortfolioData.skills || []).filter((s) => s.id !== id);
+  const current = await getPortfolioDataFresh();
+  const initialLen = (current.skills || []).length;
+  const filtered = (current.skills || []).filter((s) => s.id !== id);
 
   if (filtered.length !== initialLen) {
-    memoryPortfolioData.skills = filtered;
+    current.skills = filtered;
+    memoryPortfolioData = current;
     persistLocalDisk(memoryPortfolioData);
     await syncSectionToCloud("skills", filtered);
     return true;
@@ -460,8 +429,10 @@ export async function deleteSkill(id: string): Promise<boolean> {
 }
 
 export async function reorderSkills(orderedSkills: SkillData[]): Promise<SkillData[]> {
+  const current = await getPortfolioDataFresh();
   const updated = orderedSkills.map((s, idx) => ({ ...s, order: idx + 1 }));
-  memoryPortfolioData.skills = updated;
+  current.skills = updated;
+  memoryPortfolioData = current;
   persistLocalDisk(memoryPortfolioData);
   await syncSectionToCloud("skills", updated);
   return updated;
@@ -476,11 +447,8 @@ export function getExperience(): ExperienceData[] {
 }
 
 export async function saveExperience(exp: Partial<ExperienceData> & { id?: string }): Promise<ExperienceData> {
-  if (!memoryPortfolioData.experience || memoryPortfolioData.experience.length === 0) {
-    await getPortfolioDataFresh();
-  }
-
-  const exps = [...(memoryPortfolioData.experience || [])];
+  const current = await getPortfolioDataFresh();
+  const exps = [...(current.experience || [])];
   let updatedExp: ExperienceData;
 
   if (exp.id) {
@@ -523,7 +491,8 @@ export async function saveExperience(exp: Partial<ExperienceData> & { id?: strin
     exps.push(updatedExp);
   }
 
-  memoryPortfolioData.experience = exps;
+  current.experience = exps;
+  memoryPortfolioData = current;
   persistLocalDisk(memoryPortfolioData);
 
   // Sync ONLY experience to cloud
@@ -532,11 +501,13 @@ export async function saveExperience(exp: Partial<ExperienceData> & { id?: strin
 }
 
 export async function deleteExperience(id: string): Promise<boolean> {
-  const initialLen = (memoryPortfolioData.experience || []).length;
-  const filtered = (memoryPortfolioData.experience || []).filter((e) => e.id !== id);
+  const current = await getPortfolioDataFresh();
+  const initialLen = (current.experience || []).length;
+  const filtered = (current.experience || []).filter((e) => e.id !== id);
 
   if (filtered.length !== initialLen) {
-    memoryPortfolioData.experience = filtered;
+    current.experience = filtered;
+    memoryPortfolioData = current;
     persistLocalDisk(memoryPortfolioData);
     await syncSectionToCloud("experience", filtered);
     return true;
@@ -545,8 +516,10 @@ export async function deleteExperience(id: string): Promise<boolean> {
 }
 
 export async function reorderExperience(orderedExp: ExperienceData[]): Promise<ExperienceData[]> {
+  const current = await getPortfolioDataFresh();
   const updated = orderedExp.map((e, idx) => ({ ...e, order: idx + 1 }));
-  memoryPortfolioData.experience = updated;
+  current.experience = updated;
+  memoryPortfolioData = current;
   persistLocalDisk(memoryPortfolioData);
   await syncSectionToCloud("experience", updated);
   return updated;

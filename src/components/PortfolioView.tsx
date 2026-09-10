@@ -67,14 +67,11 @@ export default function PortfolioView({ initialData }: PortfolioViewProps) {
       }
     } catch {}
 
-    const interval = setInterval(fetchLatest, 2000);
-
     return () => {
       window.removeEventListener("visibilitychange", handleVisibilityChange);
       window.removeEventListener("focus", fetchLatest);
       window.removeEventListener("storage", handleStorage);
       if (channel) channel.close();
-      clearInterval(interval);
     };
   }, [initialData]);
 

@@ -48,60 +48,50 @@ async function verifySessionTokenEdge(token: string): Promise<boolean> {
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Verify Authentication
     const sessionCookie = req.cookies.get("admin_session")?.value;
     if (!sessionCookie || !(await verifySessionTokenEdge(sessionCookie))) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers: NO_CACHE_HEADERS });
     }
 
-    const formData = await req.formData();
-    const file = formData.get("file") as File | null;
-    const category = (formData.get("category") as string) || "uploads";
+    // 2. Parse request
+    const body = await req.json().catch(() => ({}));
+    const folder = body.folder || "portfolio/uploads";
 
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400, headers: NO_CACHE_HEADERS });
+    // 3. Read Cloudinary Config with fallback
+    const cloudName = process.env.CLOUDINARY_CLOUD_NAME || "j2j07xwi";
+    const apiKey = process.env.CLOUDINARY_API_KEY || "483862826493582";
+    const apiSecret = process.env.CLOUDINARY_API_SECRET || "dffM_E_mH8CsGajHlHvDU7UJRDE";
+
+    if (!cloudName || !apiKey || !apiSecret) {
+      return NextResponse.json(
+        { error: "Cloudinary credentials not configured on server" },
+        { status: 500, headers: NO_CACHE_HEADERS }
+      );
     }
 
-    const isVideo = file.type.startsWith("video/") || Boolean(file.name.match(/\.(mp4|webm|mov|ogg|mkv|avi)$/i));
-    const isPdf = file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
-    const cleanFileName = `${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+    // 4. Generate Cloudinary Signature
+    const timestamp = Math.floor(Date.now() / 1000).toString();
+    const strToSign = `folder=${folder}&timestamp=${timestamp}${apiSecret}`;
+    
+    const encoder = new TextEncoder();
+    const data = encoder.encode(strToSign);
+    const hashBuffer = await crypto.subtle.digest("SHA-1", data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const signature = hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 
-    // Forward file stream to high-speed cloud CDN
-    const catboxForm = new FormData();
-    catboxForm.append("reqtype", "fileupload");
-    catboxForm.append("fileToUpload", file, cleanFileName);
+    // 5. Return payload for client direct upload
+    return NextResponse.json({
+      signature,
+      timestamp,
+      apiKey,
+      cloudName
+    }, { headers: NO_CACHE_HEADERS });
 
-    const cdnRes = await fetch("https://catbox.moe/user/api.php", {
-      method: "POST",
-      body: catboxForm,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) PortfolioUploader/2.0",
-      },
-    });
-
-    if (cdnRes.ok) {
-      const publicUrl = (await cdnRes.text()).trim();
-      if (publicUrl.startsWith("http://") || publicUrl.startsWith("https://")) {
-        return NextResponse.json(
-          {
-            success: true,
-            url: publicUrl,
-            name: cleanFileName,
-            isVideo,
-            isPdf,
-          },
-          { headers: NO_CACHE_HEADERS }
-        );
-      }
-    }
-
-    return NextResponse.json(
-      { error: "Upload provider failed to return a valid URL." },
-      { status: 500, headers: NO_CACHE_HEADERS }
-    );
   } catch (err: any) {
-    console.error("Stream upload error:", err);
+    console.error("Signature generation error:", err);
     return NextResponse.json(
-      { error: err.message || "Failed to stream upload file." },
+      { error: "Failed to generate upload signature" },
       { status: 500, headers: NO_CACHE_HEADERS }
     );
   }

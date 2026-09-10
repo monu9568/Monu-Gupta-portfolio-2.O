@@ -210,30 +210,36 @@ function uploadWithProgress(
       const file = isImg ? await optimizeImageForUpload(rawFile) : rawFile;
       let finalUrl = "";
 
-      // 1. If it's a video or large file (>4MB), stream directly via Edge Streaming route
-      if (isVid || file.size > 4 * 1024 * 1024) {
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("category", category);
+      // Direct Cloudinary upload to bypass Vercel 4.5MB serverless limit
+      const folder = `portfolio/${category}`;
+      const sigRes = await fetch("/api/media/signature", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ folder }),
+      });
 
-        const data = await uploadWithProgress("/api/media/stream", formData, (pct) =>
-          setUploadProgress(pct)
-        );
-        if (data && data.url) {
-          finalUrl = data.url;
-        }
-      } else {
-        // 2. Standard direct upload for images and small assets
-        const formData = new FormData();
-        formData.append("file", file);
-        formData.append("category", category);
+      if (!sigRes.ok) {
+        throw new Error("Failed to authenticate upload with server");
+      }
 
-        const data = await uploadWithProgress("/api/media", formData, (pct) =>
-          setUploadProgress(pct)
-        );
-        if (data && data.url) {
-          finalUrl = data.url;
-        }
+      const { signature, timestamp, apiKey, cloudName } = await sigRes.json();
+      const isPdfFile = file.type.includes("pdf") || file.name.toLowerCase().endsWith(".pdf");
+      const resourceType = isVid ? "video" : (isPdfFile ? "raw" : "image");
+      const cloudinaryUrl = `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`;
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("api_key", apiKey);
+      formData.append("timestamp", timestamp);
+      formData.append("signature", signature);
+      formData.append("folder", folder);
+
+      const data = await uploadWithProgress(cloudinaryUrl, formData, (pct) =>
+        setUploadProgress(pct)
+      );
+
+      if (data && data.secure_url) {
+        finalUrl = data.secure_url;
       }
 
       if (finalUrl) {

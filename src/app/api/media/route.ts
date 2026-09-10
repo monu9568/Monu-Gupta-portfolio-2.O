@@ -6,23 +6,21 @@ import { verifySessionToken } from "@/lib/auth";
 import { put, del, list } from "@vercel/blob";
 import { v2 as cloudinary } from "cloudinary";
 
-// Initialize Cloudinary if credentials are provided in environment
-if (process.env.CLOUDINARY_URL || (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY)) {
-  cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-    secure: true,
-  });
-}
+const CLOUD_NAME = process.env.CLOUDINARY_CLOUD_NAME || "j2j07xwi";
+const API_KEY = process.env.CLOUDINARY_API_KEY || "483862826493582";
+const API_SECRET = process.env.CLOUDINARY_API_SECRET || "dffM_E_mH8CsGajHlHvDU7UJRDE";
+
+cloudinary.config({
+  cloud_name: CLOUD_NAME,
+  api_key: API_KEY,
+  api_secret: API_SECRET,
+  secure: true,
+});
 
 const BLOB_TOKEN = (process.env.BLOB_READ_WRITE_TOKEN || "").trim();
 
 const HAS_VERCEL_BLOB = Boolean(BLOB_TOKEN);
-const HAS_CLOUDINARY = Boolean(
-  process.env.CLOUDINARY_URL ||
-  (process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY)
-);
+const HAS_CLOUDINARY = Boolean(CLOUD_NAME && API_KEY && API_SECRET);
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -68,6 +66,38 @@ export async function GET(req: NextRequest) {
         }
       } catch (blobErr) {
         console.warn("Vercel Blob list notice:", blobErr);
+      }
+    }
+
+    // 1.5. If Cloudinary is configured, list cloud assets
+    if (HAS_CLOUDINARY) {
+      try {
+        const result = await cloudinary.search
+          .expression('folder:portfolio/*')
+          .sort_by('created_at', 'desc')
+          .max_results(100)
+          .execute();
+          
+        for (const res of result.resources) {
+          const isVid = res.resource_type === 'video';
+          const isPdf = res.format === 'pdf';
+          
+          let category = 'uploads';
+          if (res.folder) {
+            category = res.folder.replace('portfolio/', '') || 'uploads';
+          }
+          
+          assets.push({
+            name: (res.public_id.split('/').pop() || 'file') + '.' + res.format,
+            url: res.secure_url,
+            category,
+            size: res.bytes,
+            isVideo: isVid,
+            isPdf,
+          });
+        }
+      } catch (cloudErr) {
+        console.warn("Cloudinary list notice:", cloudErr);
       }
     }
 
